@@ -31,7 +31,7 @@ swift build -c release
 | R2 | Backspace (держать — стирает подряд, после 1,5 с — словами; PS + R2 — до начала строки) |
 | L2 | сам по себе пока свободен |
 | Тачпад, смахнуть 1 или 2 пальцами | как 4 пальца на трекпаде Mac: вверх — Mission Control, вниз — окна приложения, влево/вправо — соседний рабочий стол |
-| Нажатие тачпада | пробел; два нажатия подряд — Enter; двумя пальцами — правый клик |
+| Нажатие тачпада | пробел; два быстрых нажатия — новая строка без отправки (терминал: Option+Enter, остальное: Shift+Enter); двумя пальцами — правый клик |
 | Крестик | левый клик (удержание — перетаскивание) |
 | Круг | правый клик |
 | Квадрат | переключить приложение (⌘Tab) |
@@ -58,7 +58,7 @@ swift build -c release
 }
 ```
 
-Действия: `leftClick`, `rightClick`, `middleClick`, `toggleEnabled`, `none`, `key:<модификаторы+клавиша>` (модификаторы `cmd ctrl alt shift fn`).
+Действия: `leftClick`, `rightClick`, `middleClick`, `toggleEnabled`, `newLine`, `none`, `key:<модификаторы+клавиша>` (модификаторы `cmd ctrl alt shift fn`).
 Кнопки: `cross circle square triangle l1 r1 l2 r2 l3 r3 share options ps touchpad dpadUp dpadDown dpadLeft dpadRight`.
 
 Вместо жестов можно вернуть курсор одним пальцем и прокрутку двумя: `{"touchpad": {"oneFingerMode": "cursor", "twoFingerMode": "scroll"}}`.

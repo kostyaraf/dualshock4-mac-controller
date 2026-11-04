@@ -8,12 +8,14 @@ struct KeyCombo: Equatable {
 }
 
 /// What a button does. Written in the config as a string:
-/// "leftClick", "rightClick", "middleClick", "toggleEnabled", "none", or "key:cmd+shift+t".
+/// "leftClick", "rightClick", "middleClick", "toggleEnabled", "newLine", "none", or "key:cmd+shift+t".
 enum Action: Equatable {
     case none
     case leftClick, rightClick, middleClick
     case key(KeyCombo)
     case toggleEnabled
+    /// A new line that doesn't send: Option+Return in terminals, Shift+Return elsewhere.
+    case newLine
 
     struct ParseError: Error, CustomStringConvertible { let description: String }
 
@@ -24,9 +26,10 @@ enum Action: Equatable {
         case "rightClick": self = .rightClick
         case "middleClick": self = .middleClick
         case "toggleEnabled": self = .toggleEnabled
+        case "newLine": self = .newLine
         default:
             guard text.hasPrefix("key:") else {
-                throw ParseError(description: "неизвестное действие «\(text)». Варианты: leftClick, rightClick, middleClick, toggleEnabled, none, key:<клавиши>")
+                throw ParseError(description: "неизвестное действие «\(text)». Варианты: leftClick, rightClick, middleClick, toggleEnabled, newLine, none, key:<клавиши>")
             }
             self = .key(try Self.parseKeys(String(text.dropFirst(4))))
         }

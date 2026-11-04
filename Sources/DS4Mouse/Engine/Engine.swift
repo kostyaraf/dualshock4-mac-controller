@@ -1,4 +1,4 @@
-import CoreGraphics
+import AppKit
 import Foundation
 
 /// Polls the controller ~125 times a second and turns its state into mouse and keyboard events.
@@ -128,6 +128,13 @@ final class Engine {
         case .middleClick: mouse.button(.middle, down: down)
         case .key(let k):
             keyboard.key(k, down: down)
+        case .newLine:
+            guard down else { return }
+            let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
+            let mod: CGEventFlags = config.terminalApps.contains(app) ? .maskAlternate : .maskShift
+            let combo = KeyCombo(keyCode: returnKey, flags: mod)
+            keyboard.key(combo, down: true)
+            keyboard.key(combo, down: false)
         case .toggleEnabled:
             guard down else { return }
             releaseAll()
@@ -226,58 +233,33 @@ final class Engine {
         swipeDone = true
         // Pad y grows downward, so fingers moving up give negative dy.
         let dir = abs(dx) > abs(dy) ? (dx > 0 ? "right" : "left") : (dy < 0 ? "up" : "down")
-        padClickSpoiled = true   // a swipe is never also a click
         guard let a = swipeActions[dir], a != .none else { return }
         log("Жест на тачпаде: \(dir)")
         perform(a, button: .touchpad, down: true)
         perform(a, button: .touchpad, down: false)
     }
 
-    // MARK: - Touchpad press: space / Enter
+    // MARK: - Touchpad press: space / new line
 
-    private var padPressAt: TimeInterval?
-    private var padPressFingers = 0
-    private var padPressPos: Vec2?
-    private var padClickSpoiled = false
-    private var padClickCount = 0
-    private var padClickPendingUntil: TimeInterval?
+    private var lastPadPressAt: TimeInterval?
 
-    /// Short press = click action, two quick presses = double-click action, two fingers = their own action.
-    /// Fires on release, so a long press or a swipe with the pad pressed does nothing. See SPEC.md, Р-17.
+    /// Each press of the pad = click action (space), at once. A second quick press turns it into
+    /// the double-click action: Backspace removes the first press's space, then a new line. See SPEC.md, Р-18.
     private func handlePadClick(_ s: ControllerState, now: TimeInterval) {
-        let down = s.buttons.contains(.touchpad), was = prev.buttons.contains(.touchpad)
-        if down && !was {
-            padPressAt = now
-            padPressFingers = s.touches.count
-            padPressPos = Self.center(s.touches)
-            padClickSpoiled = false
-        } else if !down && was, let at = padPressAt {
-            padPressAt = nil
-            // Finger position at release: this tick may already have no touches, so take the last ones.
-            let end = Self.center(s.touches) ?? Self.center(prev.touches)
-            var moved = 0.0
-            if let p = padPressPos, let e = end { moved = hypot(e.x - p.x, e.y - p.y) }
-            guard !padClickSpoiled, now - at <= config.touchpad.clickMaxSeconds,
-                  moved < config.touchpad.swipeDistance / 2 else {
-                padClickCount = 0; padClickPendingUntil = nil; return
-            }
-            if padPressFingers >= 2 {
-                padClickCount = 0; padClickPendingUntil = nil
-                fire(padClicks.twoFinger)
-                return
-            }
-            padClickCount += 1
-            if padClickCount >= 2 || padClicks.double == .none {
-                fire(padClickCount >= 2 ? padClicks.double : padClicks.click)
-                padClickCount = 0; padClickPendingUntil = nil
-            } else {
-                padClickPendingUntil = now + config.touchpad.doubleClickSeconds
-            }
+        guard s.buttons.contains(.touchpad), !prev.buttons.contains(.touchpad) else { return }
+        if s.touches.count >= 2 {
+            lastPadPressAt = nil
+            fire(padClicks.twoFinger)
+            return
         }
-        // No second press in time: it was a single click.
-        if let t = padClickPendingUntil, now >= t, padPressAt == nil {
-            padClickPendingUntil = nil
-            padClickCount = 0
+        if let last = lastPadPressAt, now - last <= config.touchpad.doubleClickSeconds, padClicks.double != .none {
+            lastPadPressAt = nil
+            if case .key = padClicks.click {
+                fire(.key(KeyCombo(keyCode: backspaceKey, flags: [])))
+            }
+            fire(padClicks.double)
+        } else {
+            lastPadPressAt = now
             fire(padClicks.click)
         }
     }
@@ -286,11 +268,6 @@ final class Engine {
         guard a != .none else { return }
         perform(a, button: .touchpad, down: true)
         perform(a, button: .touchpad, down: false)
-    }
-
-    private static func center(_ t: [Touch]) -> Vec2? {
-        guard !t.isEmpty else { return nil }
-        return Vec2(x: t.map(\.x).reduce(0, +) / Double(t.count), y: t.map(\.y).reduce(0, +) / Double(t.count))
     }
 
     // MARK: - Helpers
@@ -349,6 +326,7 @@ final class Engine {
 }
 
 private let backspaceKey: CGKeyCode = 51
+private let returnKey: CGKeyCode = 36
 
 func log(_ text: String) {
     let t = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)

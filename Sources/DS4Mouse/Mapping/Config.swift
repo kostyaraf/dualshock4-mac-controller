@@ -30,12 +30,11 @@ struct TouchpadConfig: Codable {
     var scrollSpeed: Double
     var deadband: Double             // touchpad units of finger wobble to ignore
     var smoothing: Double            // 0...1, lower = smoother but laggier
-    // Pressing the pad (it is a button). Fires on release, only for a short press without a swipe.
-    var click: String                // one press
-    var doubleClick: String          // two presses in a row ("none" = no waiting, click fires at once)
+    // Pressing the pad down (it is a physical button). Fires at once on press.
+    var click: String                // each press
+    var doubleClick: String          // second quick press: undoes the first press's text with Backspace, then this
     var twoFingerClick: String       // press with two fingers on the pad
-    var clickMaxSeconds: Double      // a longer press does nothing
-    var doubleClickSeconds: Double   // how long to wait for the second press
+    var doubleClickSeconds: Double   // max time between presses to count as double
     var oneFingerMode: String        // "swipe" (gestures below) | "cursor"
     var twoFingerMode: String        // "swipe" (gestures below) | "scroll"
     var swipeDistance: Double        // touchpad units (pad is 1920 wide) a swipe must travel
@@ -57,6 +56,7 @@ struct Config: Codable {
     var keyRepeatInterval: Double
     var buttons: [String: String]    // Button name -> action string
     var psLayer: [String: String]    // while PS is held these replace `buttons` (PS = Cmd is still added)
+    var terminalApps: [String]       // bundle IDs where newLine is Option+Return
 
     static let `default` = Config(
         cursorStick: "left",
@@ -72,10 +72,9 @@ struct Config: Codable {
         touchpad: TouchpadConfig(
             enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35,
             click: "key:space",
-            doubleClick: "key:return",
+            doubleClick: "newLine",
             twoFingerClick: "rightClick",
-            clickMaxSeconds: 0.5,
-            doubleClickSeconds: 0.3,
+            doubleClickSeconds: 0.35,
             oneFingerMode: "swipe",
             twoFingerMode: "swipe",
             swipeDistance: 300,
@@ -112,6 +111,10 @@ struct Config: Codable {
         ],
         psLayer: [
             "l2": "key:grave",   // PS + L2 = Cmd+` — next window of the same app
+        ],
+        terminalApps: [
+            "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty",
+            "net.kovidgoyal.kitty", "io.alacritty", "org.alacritty", "com.github.wez.wezterm", "co.zeit.hyper",
         ]
     )
 
