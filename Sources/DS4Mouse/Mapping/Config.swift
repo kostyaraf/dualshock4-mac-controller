@@ -6,6 +6,24 @@ struct StickConfig: Codable {
     var curve: Double      // 1 = linear, >1 = finer control near center
 }
 
+/// How the cursor stick responds. See SPEC.md, Р-13.
+struct CursorFeelConfig: Codable {
+    var fineShare: Double    // part of full speed given by the gentle curve: a wide, slow center
+    var fineCurve: Double
+    var edgeCurve: Double    // the steep part that only kicks in near the rim
+    var edgeEnter: Double    // 0...1 tilt that counts as "pushed to the rim"
+    var edgeExit: Double     // tilt below which the rim boost resets
+    var edgeHold: Double     // seconds at the rim before the boost starts
+    var edgeRamp: Double     // seconds to reach the full boost after that
+    var edgeMax: Double      // speed multiplier at the end of the ramp
+}
+
+/// Holding a key that deletes text: after a while delete whole words, like on iPhone. See Р-14.
+struct DeleteConfig: Codable {
+    var wordsAfter: Double       // seconds of holding Backspace before switching to words
+    var wordInterval: Double     // seconds between word deletions
+}
+
 struct TouchpadConfig: Codable {
     var enabled: Bool
     var cursorSpeed: Double          // screen pixels per touchpad unit
@@ -25,6 +43,8 @@ struct Config: Codable {
     var cursor: StickConfig
     var scroll: StickConfig
     var invertScroll: Bool
+    var cursorFeel: CursorFeelConfig
+    var delete: DeleteConfig
     var boostMultiplier: Double      // cursor speed with the scroll stick fully tilted while the cursor moves
     var touchpad: TouchpadConfig
     var keyRepeatDelay: Double
@@ -38,6 +58,10 @@ struct Config: Codable {
         cursor: StickConfig(speed: 800, deadzone: 0.12, curve: 2.2),
         scroll: StickConfig(speed: 1800, deadzone: 0.15, curve: 2.0),
         invertScroll: false,
+        cursorFeel: CursorFeelConfig(fineShare: 0.3, fineCurve: 1.5, edgeCurve: 5,
+                                     edgeEnter: 0.9, edgeExit: 0.8,
+                                     edgeHold: 0.5, edgeRamp: 1.5, edgeMax: 3),
+        delete: DeleteConfig(wordsAfter: 1.5, wordInterval: 0.15),
         boostMultiplier: 4.5,
         touchpad: TouchpadConfig(
             enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35,
@@ -63,8 +87,8 @@ struct Config: Codable {
             "triangle": "key:ctrl+up",
             "l1": "key:tab",
             "r1": "key:return",
-            "l2": "key:backspace",
-            "r2": "none",
+            "l2": "none",
+            "r2": "key:backspace",
             "l3": "toggleEnabled",
             "r3": "middleClick",
             "share": "key:escape",

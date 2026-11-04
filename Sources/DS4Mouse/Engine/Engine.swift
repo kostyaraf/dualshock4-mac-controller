@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// Polls the controller ~125 times a second and turns its state into mouse and keyboard events.
@@ -16,6 +17,7 @@ final class Engine {
     private var held: [Button: Action] = [:]
     private var repeatAt: [Button: TimeInterval] = [:]
     private var toggleAt: [Button: TimeInterval] = [:]
+    private var pressedAt: [Button: TimeInterval] = [:]
     private var lastTick = ProcessInfo.processInfo.systemUptime
     private var timer: Timer?
 
@@ -87,6 +89,7 @@ final class Engine {
                 }
                 guard enabled else { continue }
                 held[b] = a
+                pressedAt[b] = now
                 perform(a, button: b, down: true)
                 if case .key(let k) = a, k.heldFlags == nil { repeatAt[b] = now + config.keyRepeatDelay }
             } else if !isDown && wasDown {
@@ -97,8 +100,16 @@ final class Engine {
                 toggleAt[b] = nil
                 perform(.toggleEnabled, button: b, down: true)
             } else if isDown, let t = repeatAt[b], now >= t, case .key(let k)? = held[b] {
-                if !dryRun { keyboard.key(k, down: true) }
-                repeatAt[b] = now + config.keyRepeatInterval
+                let heldFor = now - (pressedAt[b] ?? now)
+                if k.keyCode == backspaceKey, !k.flags.contains(.maskAlternate), heldFor >= config.delete.wordsAfter {
+                    // Long hold on Backspace: delete whole words (Option+Backspace), like on iPhone.
+                    let word = KeyCombo(keyCode: backspaceKey, flags: k.flags.union(.maskAlternate))
+                    if !dryRun { keyboard.key(word, down: true); keyboard.key(word, down: false) }
+                    repeatAt[b] = now + config.delete.wordInterval
+                } else {
+                    if !dryRun { keyboard.key(k, down: true) }
+                    repeatAt[b] = now + config.keyRepeatInterval
+                }
             }
         }
     }
@@ -141,7 +152,7 @@ final class Engine {
 
         // Boost grows smoothly with how far the second stick is tilted.
         let boost = secondStickRole == .boost ? 1 + (config.boostMultiplier - 1) * secondTilt : 1
-        let c = shape(cursorRaw, config.cursor)
+        let c = cursorResponse(cursorRaw, now: lastTick)
         let k = config.cursor.speed * dt * boost
         if !dryRun { mouse.move(dx: c.x * k, dy: -c.y * k) }
 
@@ -229,6 +240,30 @@ final class Engine {
         }
     }
 
+    /// When the cursor stick reached the rim, nil while it's not there.
+    private var atRimSince: TimeInterval?
+
+    /// Cursor stick → velocity (fraction of full speed, can exceed 1 with the rim boost).
+    /// A wide slow center for precision, a steep rise near the rim, and if the stick is held
+    /// at the rim the speed keeps growing: the user clearly wants to travel far. See SPEC.md, Р-13.
+    private func cursorResponse(_ v: Vec2, now: TimeInterval) -> Vec2 {
+        let f = config.cursorFeel
+        let n = tilt(v, deadzone: config.cursor.deadzone)
+        guard n > 0 else { atRimSince = nil; return Vec2() }
+
+        // Along the rim, moving from "up" to "right" doesn't reset the boost — only easing off does.
+        if n >= f.edgeEnter { atRimSince = atRimSince ?? now }
+        else if n < f.edgeExit { atRimSince = nil }
+
+        var speed = f.fineShare * pow(n, f.fineCurve) + (1 - f.fineShare) * pow(n, f.edgeCurve)
+        if let since = atRimSince {
+            let x = min(max((now - since - f.edgeHold) / f.edgeRamp, 0), 1)
+            speed *= 1 + (f.edgeMax - 1) * x * x * (3 - 2 * x)   // smooth start and finish
+        }
+        let mag = v.length
+        return Vec2(x: v.x / mag * speed, y: v.y / mag * speed)
+    }
+
     /// 0 inside the deadzone, then grows linearly to 1 at full tilt.
     private func tilt(_ v: Vec2, deadzone: Double) -> Double {
         let mag = v.length
@@ -249,6 +284,8 @@ final class Engine {
         else { input.setLight(red: 1, green: 0.25, blue: 0) }
     }
 }
+
+private let backspaceKey: CGKeyCode = 51
 
 func log(_ text: String) {
     let t = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
