@@ -36,11 +36,15 @@ func waitForAccessibility() {
     print("""
     Нужен доступ к управлению компьютером.
     Откройте: Системные настройки → Конфиденциальность и безопасность → Универсальный доступ
-    и включите ds4mouse (или Терминал, если запускаете из него), затем запустите программу снова.
-    При автозапуске она перезапустится сама через 10 секунд.
+    и включите DS4Mouse (или Терминал, если запускаете из него).
+    Жду разрешения...
     """)
-    // macOS only re-reads the permission in a new process, so waiting here is pointless.
-    Thread.sleep(forTimeInterval: 10)
+    // Ask once, then wait quietly. If macOS never reports the change, restart after a while
+    // (launchd brings us back) — at most one system prompt every 5 minutes.
+    for _ in 0..<150 {
+        Thread.sleep(forTimeInterval: 2)
+        if AXIsProcessTrusted() { print("Доступ получен."); return }
+    }
     exit(1)
 }
 
