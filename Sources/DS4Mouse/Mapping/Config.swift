@@ -66,7 +66,7 @@ struct Config: Codable {
         invertScroll: false,
         cursorFeel: CursorFeelConfig(fineShare: 0.3, fineCurve: 1.5, edgeCurve: 5,
                                      edgeEnter: 0.9, edgeExit: 0.8,
-                                     edgeHold: 0.5, edgeRamp: 1.5, edgeMax: 3),
+                                     edgeHold: 0.3, edgeRamp: 1.0, edgeMax: 4),
         delete: DeleteConfig(wordsAfter: 1.5, wordInterval: 0.15),
         boostMultiplier: 4.5,
         touchpad: TouchpadConfig(
