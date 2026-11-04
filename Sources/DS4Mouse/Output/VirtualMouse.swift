@@ -29,6 +29,9 @@ final class VirtualMouse {
     private var moveRest = Vec2()
     private var scrollRest = Vec2()
 
+    /// Modifiers held via the gamepad, so e.g. PS + click is Cmd+click.
+    var modifiers: () -> CGEventFlags = { [] }
+
     var location: CGPoint { CGEvent(source: nil)?.location ?? .zero }
 
     func move(dx: Double, dy: Double) {
@@ -48,6 +51,7 @@ final class VirtualMouse {
         guard let e = CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: to, mouseButton: button) else { return }
         e.setIntegerValueField(.mouseEventDeltaX, value: Int64(ix))
         e.setIntegerValueField(.mouseEventDeltaY, value: Int64(iy))
+        e.flags = modifiers()
         e.post(tap: .cghidEventTap)
     }
 
@@ -68,6 +72,7 @@ final class VirtualMouse {
         }
         guard let e = CGEvent(mouseEventSource: source, mouseType: b.eventType(down: down), mouseCursorPosition: pos, mouseButton: b.cg) else { return }
         e.setIntegerValueField(.mouseEventClickState, value: Int64(lastClick?.count ?? 1))
+        e.flags = modifiers()
         e.post(tap: .cghidEventTap)
     }
 
@@ -79,8 +84,10 @@ final class VirtualMouse {
         guard ix != 0 || iy != 0 else { return }
         scrollRest.x -= ix
         scrollRest.y -= iy
-        CGEvent(scrollWheelEvent2Source: source, units: .pixel, wheelCount: 2,
-                wheel1: Int32(iy), wheel2: Int32(ix), wheel3: 0)?.post(tap: .cghidEventTap)
+        guard let e = CGEvent(scrollWheelEvent2Source: source, units: .pixel, wheelCount: 2,
+                wheel1: Int32(iy), wheel2: Int32(ix), wheel3: 0) else { return }
+        e.flags = modifiers()
+        e.post(tap: .cghidEventTap)
     }
 
     func releaseAll() {

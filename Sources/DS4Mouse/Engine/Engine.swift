@@ -25,6 +25,7 @@ final class Engine {
         self.actions = try config.resolvedButtons()
         self.swipeActions = try config.resolvedSwipes()
         self.dryRun = dryRun
+        mouse.modifiers = { [keyboard] in keyboard.heldModifiers }
 
         input.onConnect = { [weak self] c in
             log("Геймпад подключён: \(c.vendorName ?? "без названия")")

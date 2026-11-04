@@ -35,11 +35,11 @@ swift build -c release
 | Круг | правый клик |
 | Квадрат | переключить приложение (⌘Tab) |
 | Треугольник | Mission Control |
-| L1 / R1 | назад / вперёд (⌘[ / ⌘]) |
+| L1 / R1 | Tab / Return |
 | R3 | средний клик |
 | Крестовина | стрелки |
 | Share / Options | Escape / Return |
-| PS | правый Option (например, для голосового набора) |
+| PS | правый Cmd (например, для голосового набора). Держать PS + L1 — Cmd+Tab |
 | L3, держать 1 с | пауза (подсветка зелёная — работает, оранжевая — пауза) |
 
 ## Настройка
@@ -76,4 +76,4 @@ swift build -c release
 ## Что не работает
 
 - **Микрофон и разъём для наушников** — macOS не видит их по Bluetooth.
-- **Кнопка PS** — macOS может перехватывать её сама (открывает приложение «Игры»). Это отключается в «Системные настройки → Игровые контроллеры».
+- **Кнопка PS** — macOS по умолчанию открывает по ней приложение «Игры». Отключено командой `defaults write com.apple.GameController bluetoothPrefsMenuLongPressAction -integer 0`, вернуть — `defaults delete com.apple.GameController bluetoothPrefsMenuLongPressAction`.
