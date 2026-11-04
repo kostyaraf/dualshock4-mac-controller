@@ -30,7 +30,12 @@ struct TouchpadConfig: Codable {
     var scrollSpeed: Double
     var deadband: Double             // touchpad units of finger wobble to ignore
     var smoothing: Double            // 0...1, lower = smoother but laggier
-    var twoFingerClickIsRightClick: Bool
+    // Pressing the pad (it is a button). Fires on release, only for a short press without a swipe.
+    var click: String                // one press
+    var doubleClick: String          // two presses in a row ("none" = no waiting, click fires at once)
+    var twoFingerClick: String       // press with two fingers on the pad
+    var clickMaxSeconds: Double      // a longer press does nothing
+    var doubleClickSeconds: Double   // how long to wait for the second press
     var oneFingerMode: String        // "swipe" (gestures below) | "cursor"
     var twoFingerMode: String        // "swipe" (gestures below) | "scroll"
     var swipeDistance: Double        // touchpad units (pad is 1920 wide) a swipe must travel
@@ -51,6 +56,7 @@ struct Config: Codable {
     var toggleHoldSeconds: Double    // how long to hold the pause button
     var keyRepeatInterval: Double
     var buttons: [String: String]    // Button name -> action string
+    var psLayer: [String: String]    // while PS is held these replace `buttons` (PS = Cmd is still added)
 
     static let `default` = Config(
         cursorStick: "left",
@@ -65,7 +71,11 @@ struct Config: Codable {
         boostMultiplier: 4.5,
         touchpad: TouchpadConfig(
             enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35,
-            twoFingerClickIsRightClick: true,
+            click: "key:space",
+            doubleClick: "key:return",
+            twoFingerClick: "rightClick",
+            clickMaxSeconds: 0.5,
+            doubleClickSeconds: 0.3,
             oneFingerMode: "swipe",
             twoFingerMode: "swipe",
             swipeDistance: 300,
@@ -94,11 +104,14 @@ struct Config: Codable {
             "share": "key:escape",
             "options": "key:return",
             "ps": "key:rcmd",
-            "touchpad": "leftClick",
+            "touchpad": "none",   // see touchpad.click
             "dpadUp": "key:up",
             "dpadDown": "key:down",
             "dpadLeft": "key:left",
             "dpadRight": "key:right",
+        ],
+        psLayer: [
+            "l2": "key:grave",   // PS + L2 = Cmd+` — next window of the same app
         ]
     )
 
@@ -117,6 +130,8 @@ struct Config: Codable {
         let config = try JSONDecoder().decode(Config.self, from: JSONSerialization.data(withJSONObject: merged))
         _ = try config.resolvedButtons()   // fail early on typos
         _ = try config.resolvedSwipes()
+        _ = try config.resolvedPSLayer()
+        _ = try config.resolvedPadClicks()
         return config
     }
 
@@ -128,6 +143,10 @@ struct Config: Codable {
     }
 
     func resolvedButtons() throws -> [Button: Action] {
+        try Config.resolve(buttons)
+    }
+
+    private static func resolve(_ buttons: [String: String]) throws -> [Button: Action] {
         var result: [Button: Action] = [:]
         for (name, text) in buttons {
             guard let b = Button(rawValue: name) else {
@@ -136,6 +155,14 @@ struct Config: Codable {
             result[b] = try Action(parsing: text)
         }
         return result
+    }
+
+    func resolvedPSLayer() throws -> [Button: Action] {
+        try Config.resolve(psLayer)
+    }
+
+    func resolvedPadClicks() throws -> (click: Action, double: Action, twoFinger: Action) {
+        (try Action(parsing: touchpad.click), try Action(parsing: touchpad.doubleClick), try Action(parsing: touchpad.twoFingerClick))
     }
 
     func resolvedSwipes() throws -> [String: Action] {

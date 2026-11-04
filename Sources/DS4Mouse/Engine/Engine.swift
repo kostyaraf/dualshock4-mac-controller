@@ -6,6 +6,8 @@ final class Engine {
     private let config: Config
     private let actions: [Button: Action]
     private let swipeActions: [String: Action]
+    private let psActions: [Button: Action]
+    private let padClicks: (click: Action, double: Action, twoFinger: Action)
     private let input = GameControllerInput()
     private let raw = DS4RawReader()
     private let mouse = VirtualMouse()
@@ -26,6 +28,8 @@ final class Engine {
         self.config = config
         self.actions = try config.resolvedButtons()
         self.swipeActions = try config.resolvedSwipes()
+        self.psActions = try config.resolvedPSLayer()
+        self.padClicks = try config.resolvedPadClicks()
         self.dryRun = dryRun
         mouse.modifiers = { [keyboard] in keyboard.heldModifiers }
 
@@ -67,6 +71,7 @@ final class Engine {
         }
 
         handleButtons(s, now: now)
+        if enabled { handlePadClick(s, now: now) }
         if enabled {
             handleSticks(s, dt: dt)
             handleTouchpad(s)
@@ -78,10 +83,7 @@ final class Engine {
         for b in Button.allCases {
             let isDown = s.buttons.contains(b), wasDown = prev.buttons.contains(b)
             if isDown && !wasDown {
-                var a = actions[b] ?? .none
-                if b == .touchpad, config.touchpad.twoFingerClickIsRightClick, s.touches.count >= 2, a == .leftClick {
-                    a = .rightClick
-                }
+                let a = (b != .ps && s.buttons.contains(.ps) ? psActions[b] : nil) ?? actions[b] ?? .none
                 if a == .toggleEnabled {
                     // Pause only on a deliberate hold, so a stray stick click doesn't stop everything.
                     toggleAt[b] = now + config.toggleHoldSeconds
@@ -224,10 +226,71 @@ final class Engine {
         swipeDone = true
         // Pad y grows downward, so fingers moving up give negative dy.
         let dir = abs(dx) > abs(dy) ? (dx > 0 ? "right" : "left") : (dy < 0 ? "up" : "down")
+        padClickSpoiled = true   // a swipe is never also a click
         guard let a = swipeActions[dir], a != .none else { return }
         log("Жест на тачпаде: \(dir)")
         perform(a, button: .touchpad, down: true)
         perform(a, button: .touchpad, down: false)
+    }
+
+    // MARK: - Touchpad press: space / Enter
+
+    private var padPressAt: TimeInterval?
+    private var padPressFingers = 0
+    private var padPressPos: Vec2?
+    private var padClickSpoiled = false
+    private var padClickCount = 0
+    private var padClickPendingUntil: TimeInterval?
+
+    /// Short press = click action, two quick presses = double-click action, two fingers = their own action.
+    /// Fires on release, so a long press or a swipe with the pad pressed does nothing. See SPEC.md, Р-17.
+    private func handlePadClick(_ s: ControllerState, now: TimeInterval) {
+        let down = s.buttons.contains(.touchpad), was = prev.buttons.contains(.touchpad)
+        if down && !was {
+            padPressAt = now
+            padPressFingers = s.touches.count
+            padPressPos = Self.center(s.touches)
+            padClickSpoiled = false
+        } else if !down && was, let at = padPressAt {
+            padPressAt = nil
+            // Finger position at release: this tick may already have no touches, so take the last ones.
+            let end = Self.center(s.touches) ?? Self.center(prev.touches)
+            var moved = 0.0
+            if let p = padPressPos, let e = end { moved = hypot(e.x - p.x, e.y - p.y) }
+            guard !padClickSpoiled, now - at <= config.touchpad.clickMaxSeconds,
+                  moved < config.touchpad.swipeDistance / 2 else {
+                padClickCount = 0; padClickPendingUntil = nil; return
+            }
+            if padPressFingers >= 2 {
+                padClickCount = 0; padClickPendingUntil = nil
+                fire(padClicks.twoFinger)
+                return
+            }
+            padClickCount += 1
+            if padClickCount >= 2 || padClicks.double == .none {
+                fire(padClickCount >= 2 ? padClicks.double : padClicks.click)
+                padClickCount = 0; padClickPendingUntil = nil
+            } else {
+                padClickPendingUntil = now + config.touchpad.doubleClickSeconds
+            }
+        }
+        // No second press in time: it was a single click.
+        if let t = padClickPendingUntil, now >= t, padPressAt == nil {
+            padClickPendingUntil = nil
+            padClickCount = 0
+            fire(padClicks.click)
+        }
+    }
+
+    private func fire(_ a: Action) {
+        guard a != .none else { return }
+        perform(a, button: .touchpad, down: true)
+        perform(a, button: .touchpad, down: false)
+    }
+
+    private static func center(_ t: [Touch]) -> Vec2? {
+        guard !t.isEmpty else { return nil }
+        return Vec2(x: t.map(\.x).reduce(0, +) / Double(t.count), y: t.map(\.y).reduce(0, +) / Double(t.count))
     }
 
     // MARK: - Helpers
