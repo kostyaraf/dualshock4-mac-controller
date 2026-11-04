@@ -7,7 +7,7 @@ final class Engine {
     private let actions: [Button: Action]
     private let swipeActions: [String: Action]
     private let psActions: [Button: Action]
-    private let padClicks: (click: Action, double: Action, twoFinger: Action)
+    private let padClicks: (click: Action, double: Action, twoFinger: Action, long: Action)
     private let input = GameControllerInput()
     private let raw = DS4RawReader()
     private let mouse = VirtualMouse()
@@ -242,11 +242,24 @@ final class Engine {
     // MARK: - Touchpad press: space / new line
 
     private var lastPadPressAt: TimeInterval?
+    /// Set while a one-finger press that typed the click action is held, until it becomes a long press.
+    private var padLongPressAt: TimeInterval?
 
     /// Each press of the pad = click action (space), at once. A second quick press turns it into
-    /// the double-click action: Backspace removes the first press's space, then a new line. See SPEC.md, Р-18.
+    /// the double-click action, holding it turns it into the long-press action (on-screen keyboard);
+    /// either way Backspace first removes the space the press already typed. See SPEC.md, Р-18, Р-20.
     private func handlePadClick(_ s: ControllerState, now: TimeInterval) {
-        guard s.buttons.contains(.touchpad), !prev.buttons.contains(.touchpad) else { return }
+        let down = s.buttons.contains(.touchpad), was = prev.buttons.contains(.touchpad)
+        if !down { padLongPressAt = nil; return }
+        if was {
+            if let t = padLongPressAt, now >= t {
+                padLongPressAt = nil
+                lastPadPressAt = nil
+                undoClick()
+                fire(padClicks.long)
+            }
+            return
+        }
         if s.touches.count >= 2 {
             lastPadPressAt = nil
             fire(padClicks.twoFinger)
@@ -254,14 +267,18 @@ final class Engine {
         }
         if let last = lastPadPressAt, now - last <= config.touchpad.doubleClickSeconds, padClicks.double != .none {
             lastPadPressAt = nil
-            if case .key = padClicks.click {
-                fire(.key(KeyCombo(keyCode: backspaceKey, flags: [])))
-            }
+            undoClick()
             fire(padClicks.double)
         } else {
             lastPadPressAt = now
             fire(padClicks.click)
+            if padClicks.long != .none { padLongPressAt = now + config.touchpad.longPressSeconds }
         }
+    }
+
+    /// Removes what the click action typed, when it types something.
+    private func undoClick() {
+        if case .key = padClicks.click { fire(.key(KeyCombo(keyCode: backspaceKey, flags: []))) }
     }
 
     private func fire(_ a: Action) {

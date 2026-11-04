@@ -34,6 +34,8 @@ struct TouchpadConfig: Codable {
     var click: String                // each press
     var doubleClick: String          // second quick press: undoes the first press's text with Backspace, then this
     var twoFingerClick: String       // press with two fingers on the pad
+    var longPress: String            // holding the pad down: undoes the press's text, then this
+    var longPressSeconds: Double
     var doubleClickSeconds: Double   // max time between presses to count as double
     var oneFingerMode: String        // "swipe" (gestures below) | "cursor"
     var twoFingerMode: String        // "swipe" (gestures below) | "scroll"
@@ -74,6 +76,10 @@ struct Config: Codable {
             click: "key:space",
             doubleClick: "newLine",
             twoFingerClick: "rightClick",
+            // Accessibility shortcut. Toggles the on-screen keyboard when it is the only
+            // feature ticked in System Settings → Accessibility → Shortcut.
+            longPress: "key:cmd+alt+f5",
+            longPressSeconds: 0.6,
             doubleClickSeconds: 0.35,
             oneFingerMode: "swipe",
             twoFingerMode: "swipe",
@@ -164,8 +170,9 @@ struct Config: Codable {
         try Config.resolve(psLayer)
     }
 
-    func resolvedPadClicks() throws -> (click: Action, double: Action, twoFinger: Action) {
-        (try Action(parsing: touchpad.click), try Action(parsing: touchpad.doubleClick), try Action(parsing: touchpad.twoFingerClick))
+    func resolvedPadClicks() throws -> (click: Action, double: Action, twoFinger: Action, long: Action) {
+        (try Action(parsing: touchpad.click), try Action(parsing: touchpad.doubleClick),
+         try Action(parsing: touchpad.twoFingerClick), try Action(parsing: touchpad.longPress))
     }
 
     func resolvedSwipes() throws -> [String: Action] {
