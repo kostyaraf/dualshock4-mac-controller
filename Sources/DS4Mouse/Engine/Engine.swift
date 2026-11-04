@@ -59,14 +59,15 @@ final class Engine {
         input.read(into: &s)
         if raw.isActive {
             s.touches = raw.touches
-            if raw.psPressed { s.buttons.insert(.ps) }
+            // The raw report is the source of truth for PS: through GameController the system
+            // may swallow its release, leaving Cmd stuck.
+            if raw.psPressed { s.buttons.insert(.ps) } else { s.buttons.remove(.ps) }
         }
 
         handleButtons(s, now: now)
         if enabled {
-            let f = speedFactor(s)
-            handleSticks(s, dt: dt, speedFactor: f)
-            handleTouchpad(s, speedFactor: f)
+            handleSticks(s, dt: dt)
+            handleTouchpad(s)
         }
         prev = s
     }
@@ -112,7 +113,8 @@ final class Engine {
         case .leftClick: mouse.button(.left, down: down)
         case .rightClick: mouse.button(.right, down: down)
         case .middleClick: mouse.button(.middle, down: down)
-        case .key(let k): keyboard.key(k, down: down)
+        case .key(let k):
+            keyboard.key(k, down: down)
         case .toggleEnabled:
             guard down else { return }
             releaseAll()
@@ -122,18 +124,30 @@ final class Engine {
         }
     }
 
-    /// L2 slows down, R2 speeds up, both proportionally to how far the trigger is pressed.
-    private func speedFactor(_ s: ControllerState) -> Double {
-        (1 + (config.precisionMultiplier - 1) * s.l2) * (1 + (config.boostMultiplier - 1) * s.r2)
-    }
+    /// What the second stick does. Decided once, when it leaves the center, and kept until it returns:
+    /// if the cursor stick is already moving, the second stick speeds the cursor up; otherwise it scrolls.
+    private enum SecondStickRole { case idle, scroll, boost }
+    private var secondStickRole = SecondStickRole.idle
 
-    private func handleSticks(_ s: ControllerState, dt: Double, speedFactor: Double) {
-        let c = shape(stick(config.cursorStick, s), config.cursor)
-        let k = config.cursor.speed * dt * speedFactor
+    private func handleSticks(_ s: ControllerState, dt: Double) {
+        let cursorRaw = stick(config.cursorStick, s)
+        let secondRaw = stick(config.scrollStick, s)
+        let secondTilt = tilt(secondRaw, deadzone: config.scroll.deadzone)
+
+        if secondTilt == 0 { secondStickRole = .idle }
+        else if secondStickRole == .idle {
+            secondStickRole = tilt(cursorRaw, deadzone: config.cursor.deadzone) > 0 ? .boost : .scroll
+        }
+
+        // Boost grows smoothly with how far the second stick is tilted.
+        let boost = secondStickRole == .boost ? 1 + (config.boostMultiplier - 1) * secondTilt : 1
+        let c = shape(cursorRaw, config.cursor)
+        let k = config.cursor.speed * dt * boost
         if !dryRun { mouse.move(dx: c.x * k, dy: -c.y * k) }
 
-        let sc = shape(stick(config.scrollStick, s), config.scroll)
-        let ks = config.scroll.speed * dt * speedFactor * (config.invertScroll ? -1 : 1)
+        guard secondStickRole == .scroll else { return }
+        let sc = shape(secondRaw, config.scroll)
+        let ks = config.scroll.speed * dt * (config.invertScroll ? -1 : 1)
         if !dryRun { mouse.scroll(dx: -sc.x * ks, dy: sc.y * ks) }
     }
 
@@ -141,7 +155,7 @@ final class Engine {
     private var touchAnchor = Vec2()
     private var touchSmooth = Vec2()
 
-    private func handleTouchpad(_ s: ControllerState, speedFactor: Double) {
+    private func handleTouchpad(_ s: ControllerState) {
         guard config.touchpad.enabled else { return }
         let now = s.touches, before = prev.touches
         guard !now.isEmpty else { return }
@@ -179,7 +193,7 @@ final class Engine {
 
         if dryRun { return }
         if now.count == 1 {
-            let k = config.touchpad.cursorSpeed * speedFactor
+            let k = config.touchpad.cursorSpeed
             mouse.move(dx: dx * k, dy: dy * k)
         } else {
             // Content follows the fingers, like on a Mac trackpad.
@@ -213,6 +227,12 @@ final class Engine {
         case "right": s.rightStick
         default: Vec2()
         }
+    }
+
+    /// 0 inside the deadzone, then grows linearly to 1 at full tilt.
+    private func tilt(_ v: Vec2, deadzone: Double) -> Double {
+        let mag = v.length
+        return mag > deadzone ? min((mag - deadzone) / (1 - deadzone), 1) : 0
     }
 
     /// Radial deadzone + response curve: small tilts give fine movement, full tilt gives full speed.

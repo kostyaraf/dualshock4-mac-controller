@@ -25,8 +25,7 @@ struct Config: Codable {
     var cursor: StickConfig
     var scroll: StickConfig
     var invertScroll: Bool
-    var precisionMultiplier: Double  // speed when L2 is fully pressed
-    var boostMultiplier: Double      // speed when R2 is fully pressed
+    var boostMultiplier: Double      // cursor speed with the scroll stick fully tilted while the cursor moves
     var touchpad: TouchpadConfig
     var keyRepeatDelay: Double
     var toggleHoldSeconds: Double    // how long to hold the pause button
@@ -39,7 +38,6 @@ struct Config: Codable {
         cursor: StickConfig(speed: 800, deadzone: 0.12, curve: 2.2),
         scroll: StickConfig(speed: 1800, deadzone: 0.15, curve: 2.0),
         invertScroll: false,
-        precisionMultiplier: 0.3,
         boostMultiplier: 4.5,
         touchpad: TouchpadConfig(
             enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35,

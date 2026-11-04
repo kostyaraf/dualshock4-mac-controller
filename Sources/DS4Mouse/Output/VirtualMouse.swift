@@ -90,6 +90,14 @@ final class VirtualMouse {
         e.post(tap: .cghidEventTap)
     }
 
+    /// A zero-distance move carrying the current modifiers. The Cmd+Tab switcher ignores a synthetic
+    /// Cmd release until some event arrives without Cmd; this is that event.
+    func nudge() {
+        guard let e = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: location, mouseButton: .left) else { return }
+        e.flags = modifiers()
+        e.post(tap: .cghidEventTap)
+    }
+
     func releaseAll() {
         for b in pressed { button(b, down: false) }
     }

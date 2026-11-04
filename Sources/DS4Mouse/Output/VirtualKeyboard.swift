@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 
 /// Posts synthetic key presses. Needs Accessibility permission.
 final class VirtualKeyboard {
@@ -19,5 +20,19 @@ final class VirtualKeyboard {
             e.flags = combo.flags.union(heldModifiers)
         }
         e.post(tap: .cghidEventTap)
+
+        // The Cmd+Tab switcher often misses a synthetic modifier release and only commits on the
+        // next keyboard event. Repeat the release a moment later; a second "up" is harmless.
+        if let held = combo.heldFlags, !down {
+            for delay in [0.05, 0.15] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [self] in
+                    guard !heldModifiers.isSuperset(of: held),   // pressed again meanwhile
+                          let again = CGEvent(keyboardEventSource: source, virtualKey: combo.keyCode, keyDown: false) else { return }
+                    again.type = .flagsChanged
+                    again.flags = combo.flags.union(heldModifiers)
+                    again.post(tap: .cghidEventTap)
+                }
+            }
+        }
     }
 }
