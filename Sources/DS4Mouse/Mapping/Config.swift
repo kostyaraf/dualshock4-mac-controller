@@ -13,6 +13,9 @@ struct TouchpadConfig: Codable {
     var deadband: Double             // touchpad units of finger wobble to ignore
     var smoothing: Double            // 0...1, lower = smoother but laggier
     var twoFingerClickIsRightClick: Bool
+    var twoFingerMode: String        // "swipe" (gestures below) | "scroll"
+    var swipeDistance: Double        // touchpad units (pad is 1920 wide) a swipe must travel
+    var swipes: [String: String]     // "up" | "down" | "left" | "right" -> action string
 }
 
 struct Config: Codable {
@@ -37,7 +40,19 @@ struct Config: Codable {
         invertScroll: false,
         precisionMultiplier: 0.3,
         boostMultiplier: 4.5,
-        touchpad: TouchpadConfig(enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35, twoFingerClickIsRightClick: true),
+        touchpad: TouchpadConfig(
+            enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35,
+            twoFingerClickIsRightClick: true,
+            twoFingerMode: "swipe",
+            swipeDistance: 300,
+            // Same as four-finger swipes on a Mac trackpad ("left" = fingers move right-to-left).
+            swipes: [
+                "up": "key:ctrl+up",       // Mission Control
+                "down": "key:ctrl+down",   // App Exposé
+                "left": "key:ctrl+right",  // next Space / full-screen app
+                "right": "key:ctrl+left",  // previous Space
+            ]
+        ),
         keyRepeatDelay: 0.4,
         toggleHoldSeconds: 1.0,
         keyRepeatInterval: 0.05,
@@ -77,6 +92,7 @@ struct Config: Codable {
         let merged = deepMerge(defaults, user)
         let config = try JSONDecoder().decode(Config.self, from: JSONSerialization.data(withJSONObject: merged))
         _ = try config.resolvedButtons()   // fail early on typos
+        _ = try config.resolvedSwipes()
         return config
     }
 
@@ -94,6 +110,17 @@ struct Config: Codable {
                 throw Action.ParseError(description: "неизвестная кнопка «\(name)». Доступны: \(Button.allCases.map(\.rawValue).joined(separator: " "))")
             }
             result[b] = try Action(parsing: text)
+        }
+        return result
+    }
+
+    func resolvedSwipes() throws -> [String: Action] {
+        var result: [String: Action] = [:]
+        for (dir, text) in touchpad.swipes {
+            guard ["up", "down", "left", "right"].contains(dir) else {
+                throw Action.ParseError(description: "неизвестное направление «\(dir)». Доступны: up down left right")
+            }
+            result[dir] = try Action(parsing: text)
         }
         return result
     }

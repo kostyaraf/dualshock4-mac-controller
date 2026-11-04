@@ -4,6 +4,7 @@ import Foundation
 final class Engine {
     private let config: Config
     private let actions: [Button: Action]
+    private let swipeActions: [String: Action]
     private let input = GameControllerInput()
     private let raw = DS4RawReader()
     private let mouse = VirtualMouse()
@@ -22,6 +23,7 @@ final class Engine {
     init(config: Config, dryRun: Bool) throws {
         self.config = config
         self.actions = try config.resolvedButtons()
+        self.swipeActions = try config.resolvedSwipes()
         self.dryRun = dryRun
 
         input.onConnect = { [weak self] c in
@@ -149,6 +151,13 @@ final class Engine {
         guard now.count == before.count, now[0].id == before[0].id else {
             touchAnchor = raw
             touchSmooth = raw
+            swipeStart = raw
+            swipeDone = false
+            return
+        }
+
+        if now.count >= 2 && config.touchpad.twoFingerMode == "swipe" {
+            detectSwipe(raw)
             return
         }
 
@@ -175,6 +184,23 @@ final class Engine {
             let k = config.touchpad.scrollSpeed * (config.invertScroll ? -1 : 1)
             mouse.scroll(dx: dx * k, dy: dy * k)
         }
+    }
+
+    private var swipeStart = Vec2()
+    private var swipeDone = false
+
+    /// One action per two-finger touch, once the fingers have travelled far enough in one direction.
+    private func detectSwipe(_ p: Vec2) {
+        guard !swipeDone else { return }
+        let dx = p.x - swipeStart.x, dy = p.y - swipeStart.y
+        guard max(abs(dx), abs(dy)) >= config.touchpad.swipeDistance else { return }
+        swipeDone = true
+        // Pad y grows downward, so fingers moving up give negative dy.
+        let dir = abs(dx) > abs(dy) ? (dx > 0 ? "right" : "left") : (dy < 0 ? "up" : "down")
+        guard let a = swipeActions[dir], a != .none else { return }
+        log("Жест двумя пальцами: \(dir)")
+        perform(a, button: .touchpad, down: true)
+        perform(a, button: .touchpad, down: false)
     }
 
     // MARK: - Helpers
