@@ -14,6 +14,7 @@ ds4mouse — управление Mac геймпадом вместо мыши
 Файл настроек по умолчанию: \(Config.defaultPath.path)
 """
 
+setvbuf(stdout, nil, _IOLBF, 0)   // line-buffered, so the log file updates live
 var args = Array(CommandLine.arguments.dropFirst())
 let command = args.first.map { $0.hasPrefix("-") ? "run" : args.removeFirst() } ?? "run"
 
