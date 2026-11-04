@@ -119,6 +119,11 @@ struct Config: Codable {
         psLayer: [
             "l2": "key:grave",   // PS + L2 = Cmd+` — next window of the same app
             "share": "screenshotWindow",
+            // PS is Cmd, so these become Cmd+C / Cmd+V / Cmd+X / Cmd+A.
+            "square": "key:c",
+            "circle": "key:v",
+            "triangle": "key:x",
+            "r3": "key:a",
         ],
         terminalApps: [
             "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty",
