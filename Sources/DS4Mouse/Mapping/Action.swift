@@ -55,6 +55,8 @@ enum Action: Equatable {
         }
         // Real arrow keys always carry these flags; some system shortcuts (Mission Control) need them.
         if (123...126).contains(code) { flags.formUnion([.maskSecondaryFn, .maskNumericPad]) }
+        // Real F-keys carry the Fn flag too; system shortcuts like Option+Cmd+F5 may need it.
+        if functionKeyCodes.contains(code) { flags.insert(.maskSecondaryFn) }
         return KeyCombo(keyCode: code, flags: flags)
     }
 
@@ -96,3 +98,5 @@ enum Action: Equatable {
         "left": 123, "right": 124, "down": 125, "up": 126,
     ]
 }
+
+private let functionKeyCodes: Set<CGKeyCode> = [122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111]

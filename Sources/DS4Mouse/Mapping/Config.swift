@@ -3,18 +3,21 @@ import Foundation
 struct StickConfig: Codable {
     var speed: Double      // pixels per second at full tilt
     var deadzone: Double   // 0...1, ignore tilt below this
+    var fineSpeed: Double  // fraction of `speed` at the edge of the slow center (see StickFeelConfig)
 }
 
-/// How a stick responds (cursor: Р-13, scroll: Р-21).
+/// How both sticks respond — one shared setup, so cursor and scroll feel the same. See SPEC.md, Р-22.
+/// Speed is a fraction of the stick's full speed against tilt (0 at the deadzone, 1 at full tilt):
+/// inside `fineZone` it rises gently to the stick's `fineSpeed`, outside it rises steeply to 1.
 struct StickFeelConfig: Codable {
-    var fineShare: Double    // part of full speed given by the gentle curve: a wide, slow center
-    var fineCurve: Double
-    var edgeCurve: Double    // the steep part that only kicks in near the rim
-    var edgeEnter: Double    // 0...1 tilt that counts as "pushed to the rim"
-    var edgeExit: Double     // tilt below which the rim boost resets
-    var edgeHold: Double     // seconds at the rim before the boost starts
-    var edgeRamp: Double     // seconds to reach the full boost after that
-    var edgeMax: Double      // speed multiplier at the end of the ramp
+    var fineZone: Double     // 0...1 tilt: the slow center. Change this to widen/narrow it for both sticks
+    var fineCurve: Double    // >1: even gentler at the very start
+    var outerCurve: Double   // >1: the outer part stays slow longer and shoots up at the rim
+    var rimEnter: Double     // tilt that counts as "pushed to the rim"
+    var rimExit: Double      // tilt below which the rim boost resets
+    var rimHold: Double      // seconds at the rim before the boost starts
+    var rimRamp: Double      // seconds to reach the full boost after that
+    var rimMax: Double       // speed multiplier at the end of the ramp
 }
 
 /// Holding a key that deletes text: after a while delete whole words, like on iPhone. See Р-14.
@@ -48,8 +51,7 @@ struct Config: Codable {
     var cursor: StickConfig
     var scroll: StickConfig
     var invertScroll: Bool
-    var cursorFeel: StickFeelConfig
-    var scrollFeel: StickFeelConfig
+    var stickFeel: StickFeelConfig
     var delete: DeleteConfig
     var boostMultiplier: Double      // cursor speed with the scroll stick fully tilted while the cursor moves
     var touchpad: TouchpadConfig
@@ -63,15 +65,11 @@ struct Config: Codable {
     static let `default` = Config(
         cursorStick: "left",
         scrollStick: "right",
-        cursor: StickConfig(speed: 800, deadzone: 0.12),
-        scroll: StickConfig(speed: 1800, deadzone: 0.15),
+        cursor: StickConfig(speed: 800, deadzone: 0.12, fineSpeed: 0.2),
+        scroll: StickConfig(speed: 1800, deadzone: 0.15, fineSpeed: 0.1),
         invertScroll: false,
-        cursorFeel: StickFeelConfig(fineShare: 0.3, fineCurve: 1.5, edgeCurve: 5,
-                                    edgeEnter: 0.9, edgeExit: 0.8,
-                                    edgeHold: 0.3, edgeRamp: 1.0, edgeMax: 4),
-        scrollFeel: StickFeelConfig(fineShare: 0.25, fineCurve: 1.5, edgeCurve: 4,
-                                    edgeEnter: 0.9, edgeExit: 0.8,
-                                    edgeHold: 0.4, edgeRamp: 1.0, edgeMax: 3),
+        stickFeel: StickFeelConfig(fineZone: 0.72, fineCurve: 1.5, outerCurve: 3,
+                                   rimEnter: 0.9, rimExit: 0.8, rimHold: 0.3, rimRamp: 1.0, rimMax: 4),
         delete: DeleteConfig(wordsAfter: 1.5, wordInterval: 0.15),
         boostMultiplier: 4.5,
         touchpad: TouchpadConfig(

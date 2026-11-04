@@ -161,12 +161,12 @@ final class Engine {
 
         // Boost grows smoothly with how far the second stick is tilted.
         let boost = secondStickRole == .boost ? 1 + (config.boostMultiplier - 1) * secondTilt : 1
-        let c = response(cursorRaw, config.cursor, config.cursorFeel, rimSince: &cursorRimSince, now: lastTick)
+        let c = response(cursorRaw, config.cursor, rimSince: &cursorRimSince, now: lastTick)
         let k = config.cursor.speed * dt * boost
         if !dryRun { mouse.move(dx: c.x * k, dy: -c.y * k) }
 
         guard secondStickRole == .scroll else { scrollRimSince = nil; return }
-        let sc = response(secondRaw, config.scroll, config.scrollFeel, rimSince: &scrollRimSince, now: lastTick)
+        let sc = response(secondRaw, config.scroll, rimSince: &scrollRimSince, now: lastTick)
         let ks = config.scroll.speed * dt * (config.invertScroll ? -1 : 1)
         if !dryRun { mouse.scroll(dx: -sc.x * ks, dy: sc.y * ks) }
     }
@@ -304,19 +304,28 @@ final class Engine {
     /// Stick → velocity (fraction of full speed, can exceed 1 with the rim boost).
     /// A wide slow center for precision, a steep rise near the rim, and if the stick is held
     /// at the rim the speed keeps growing: the user clearly wants to travel far. See SPEC.md, Р-13, Р-21.
-    private func response(_ v: Vec2, _ c: StickConfig, _ f: StickFeelConfig,
-                          rimSince: inout TimeInterval?, now: TimeInterval) -> Vec2 {
+    private func response(_ v: Vec2, _ c: StickConfig, rimSince: inout TimeInterval?, now: TimeInterval) -> Vec2 {
+        let f = config.stickFeel
         let n = tilt(v, deadzone: c.deadzone)
         guard n > 0 else { rimSince = nil; return Vec2() }
 
         // Along the rim, moving from "up" to "right" doesn't reset the boost — only easing off does.
-        if n >= f.edgeEnter { rimSince = rimSince ?? now }
-        else if n < f.edgeExit { rimSince = nil }
+        if n >= f.rimEnter { rimSince = rimSince ?? now }
+        else if n < f.rimExit { rimSince = nil }
 
-        var speed = f.fineShare * pow(n, f.fineCurve) + (1 - f.fineShare) * pow(n, f.edgeCurve)
+        var speed: Double
+        let r = f.fineZone, s = c.fineSpeed
+        if n <= r {
+            speed = s * pow(n / r, f.fineCurve)
+        } else {
+            // Starts with the same slope the center ended with (no kink), then bends up to 1 at full tilt.
+            let t = (n - r) / (1 - r)
+            let lin = min(s * f.fineCurve * (1 - r) / (r * (1 - s)), 1)
+            speed = s + (1 - s) * (lin * t + (1 - lin) * pow(t, f.outerCurve))
+        }
         if let since = rimSince {
-            let x = min(max((now - since - f.edgeHold) / f.edgeRamp, 0), 1)
-            speed *= 1 + (f.edgeMax - 1) * x * x * (3 - 2 * x)   // smooth start and finish
+            let x = min(max((now - since - f.rimHold) / f.rimRamp, 0), 1)
+            speed *= 1 + (f.rimMax - 1) * x * x * (3 - 2 * x)   // smooth start and finish
         }
         let mag = v.length
         return Vec2(x: v.x / mag * speed, y: v.y / mag * speed)
