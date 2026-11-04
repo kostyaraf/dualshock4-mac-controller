@@ -63,7 +63,7 @@ struct Config: Codable {
             "triangle": "key:ctrl+up",
             "l1": "key:tab",
             "r1": "key:return",
-            "l2": "none",
+            "l2": "key:backspace",
             "r2": "none",
             "l3": "toggleEnabled",
             "r3": "middleClick",
