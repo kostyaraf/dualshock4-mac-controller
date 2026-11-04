@@ -13,6 +13,7 @@ struct TouchpadConfig: Codable {
     var deadband: Double             // touchpad units of finger wobble to ignore
     var smoothing: Double            // 0...1, lower = smoother but laggier
     var twoFingerClickIsRightClick: Bool
+    var oneFingerMode: String        // "swipe" (gestures below) | "cursor"
     var twoFingerMode: String        // "swipe" (gestures below) | "scroll"
     var swipeDistance: Double        // touchpad units (pad is 1920 wide) a swipe must travel
     var swipes: [String: String]     // "up" | "down" | "left" | "right" -> action string
@@ -43,6 +44,7 @@ struct Config: Codable {
         touchpad: TouchpadConfig(
             enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35,
             twoFingerClickIsRightClick: true,
+            oneFingerMode: "swipe",
             twoFingerMode: "swipe",
             swipeDistance: 300,
             // Same as four-finger swipes on a Mac trackpad ("left" = fingers move right-to-left).

@@ -156,7 +156,8 @@ final class Engine {
             return
         }
 
-        if now.count >= 2 && config.touchpad.twoFingerMode == "swipe" {
+        let mode = now.count == 1 ? config.touchpad.oneFingerMode : config.touchpad.twoFingerMode
+        if mode == "swipe" {
             detectSwipe(raw)
             return
         }
@@ -189,7 +190,7 @@ final class Engine {
     private var swipeStart = Vec2()
     private var swipeDone = false
 
-    /// One action per two-finger touch, once the fingers have travelled far enough in one direction.
+    /// One action per touch, once the fingers have travelled far enough in one direction.
     private func detectSwipe(_ p: Vec2) {
         guard !swipeDone else { return }
         let dx = p.x - swipeStart.x, dy = p.y - swipeStart.y
@@ -198,7 +199,7 @@ final class Engine {
         // Pad y grows downward, so fingers moving up give negative dy.
         let dir = abs(dx) > abs(dy) ? (dx > 0 ? "right" : "left") : (dy < 0 ? "up" : "down")
         guard let a = swipeActions[dir], a != .none else { return }
-        log("Жест двумя пальцами: \(dir)")
+        log("Жест на тачпаде: \(dir)")
         perform(a, button: .touchpad, down: true)
         perform(a, button: .touchpad, down: false)
     }
