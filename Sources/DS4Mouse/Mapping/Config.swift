@@ -36,7 +36,7 @@ struct Config: Codable {
         scroll: StickConfig(speed: 1800, deadzone: 0.15, curve: 2.0),
         invertScroll: false,
         precisionMultiplier: 0.3,
-        boostMultiplier: 6,
+        boostMultiplier: 4.5,
         touchpad: TouchpadConfig(enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35, twoFingerClickIsRightClick: true),
         keyRepeatDelay: 0.4,
         toggleHoldSeconds: 1.0,
