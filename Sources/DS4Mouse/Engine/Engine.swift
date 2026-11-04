@@ -57,8 +57,9 @@ final class Engine {
 
         handleButtons(s, now: now)
         if enabled {
-            handleSticks(s, dt: dt)
-            handleTouchpad(s)
+            let f = speedFactor(s)
+            handleSticks(s, dt: dt, speedFactor: f)
+            handleTouchpad(s, speedFactor: f)
         }
         prev = s
     }
@@ -105,11 +106,12 @@ final class Engine {
         }
     }
 
-    private func handleSticks(_ s: ControllerState, dt: Double) {
-        var speedFactor = 1.0
-        speedFactor *= 1 + (config.precisionMultiplier - 1) * s.l2
-        speedFactor *= 1 + (config.boostMultiplier - 1) * s.r2
+    /// L2 slows down, R2 speeds up, both proportionally to how far the trigger is pressed.
+    private func speedFactor(_ s: ControllerState) -> Double {
+        (1 + (config.precisionMultiplier - 1) * s.l2) * (1 + (config.boostMultiplier - 1) * s.r2)
+    }
 
+    private func handleSticks(_ s: ControllerState, dt: Double, speedFactor: Double) {
         let c = shape(stick(config.cursorStick, s), config.cursor)
         let k = config.cursor.speed * dt * speedFactor
         if !dryRun { mouse.move(dx: c.x * k, dy: -c.y * k) }
@@ -119,16 +121,42 @@ final class Engine {
         if !dryRun { mouse.scroll(dx: -sc.x * ks, dy: sc.y * ks) }
     }
 
-    private func handleTouchpad(_ s: ControllerState) {
+    /// Finger position filter: `anchor` ignores small wobble (deadband), `smooth` removes jerks.
+    private var touchAnchor = Vec2()
+    private var touchSmooth = Vec2()
+
+    private func handleTouchpad(_ s: ControllerState, speedFactor: Double) {
         guard config.touchpad.enabled else { return }
         let now = s.touches, before = prev.touches
-        guard !now.isEmpty, now.count == before.count, now[0].id == before[0].id else { return }
+        guard !now.isEmpty else { return }
+        let raw = Vec2(x: now.map(\.x).reduce(0, +) / Double(now.count),
+                       y: now.map(\.y).reduce(0, +) / Double(now.count))
 
-        let dx = now.indices.map { now[$0].x - before[$0].x }.reduce(0, +) / Double(now.count)
-        let dy = now.indices.map { now[$0].y - before[$0].y }.reduce(0, +) / Double(now.count)
+        // New touch or finger count changed: start fresh, don't jump.
+        guard now.count == before.count, now[0].id == before[0].id else {
+            touchAnchor = raw
+            touchSmooth = raw
+            return
+        }
+
+        // Anchor trails the finger by `deadband`: tiny wobble doesn't move it, real motion does.
+        let off = Vec2(x: raw.x - touchAnchor.x, y: raw.y - touchAnchor.y)
+        let band = config.touchpad.deadband
+        if off.length > band {
+            let k = (off.length - band) / off.length
+            touchAnchor.x += off.x * k
+            touchAnchor.y += off.y * k
+        }
+        let a = config.touchpad.smoothing
+        let dx = (touchAnchor.x - touchSmooth.x) * a
+        let dy = (touchAnchor.y - touchSmooth.y) * a
+        touchSmooth.x += dx
+        touchSmooth.y += dy
+
         if dryRun { return }
         if now.count == 1 {
-            mouse.move(dx: dx * config.touchpad.cursorSpeed, dy: dy * config.touchpad.cursorSpeed)
+            let k = config.touchpad.cursorSpeed * speedFactor
+            mouse.move(dx: dx * k, dy: dy * k)
         } else {
             // Content follows the fingers, like on a Mac trackpad.
             let k = config.touchpad.scrollSpeed * (config.invertScroll ? -1 : 1)

@@ -10,6 +10,8 @@ struct TouchpadConfig: Codable {
     var enabled: Bool
     var cursorSpeed: Double          // screen pixels per touchpad unit
     var scrollSpeed: Double
+    var deadband: Double             // touchpad units of finger wobble to ignore
+    var smoothing: Double            // 0...1, lower = smoother but laggier
     var twoFingerClickIsRightClick: Bool
 }
 
@@ -29,12 +31,12 @@ struct Config: Codable {
     static let `default` = Config(
         cursorStick: "left",
         scrollStick: "right",
-        cursor: StickConfig(speed: 1500, deadzone: 0.12, curve: 2.2),
+        cursor: StickConfig(speed: 800, deadzone: 0.12, curve: 2.2),
         scroll: StickConfig(speed: 1800, deadzone: 0.15, curve: 2.0),
         invertScroll: false,
         precisionMultiplier: 0.3,
-        boostMultiplier: 2.5,
-        touchpad: TouchpadConfig(enabled: true, cursorSpeed: 1.3, scrollSpeed: 1.5, twoFingerClickIsRightClick: true),
+        boostMultiplier: 5,
+        touchpad: TouchpadConfig(enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35, twoFingerClickIsRightClick: true),
         keyRepeatDelay: 0.4,
         keyRepeatInterval: 0.05,
         buttons: [
