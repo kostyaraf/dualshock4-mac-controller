@@ -8,6 +8,8 @@ final class DS4RawReader {
     private let manager: IOHIDManager
     private var buffers: [UnsafeMutablePointer<UInt8>] = []
     private(set) var touches: [Touch] = []
+    /// PS button. macOS often swallows it before GameController apps see it, so read it raw.
+    private(set) var psPressed = false
     private var lastReport = Date.distantPast
 
     var isActive: Bool { Date().timeIntervalSince(lastReport) < 0.5 }
@@ -41,6 +43,8 @@ final class DS4RawReader {
         if id == 0x11 && length >= 45 { base = 2 }
         else if id == 0x01 && length >= 43 { base = 0 }
         else { return }   // basic Bluetooth report: no touchpad data
+
+        psPressed = r[base + 7] & 0x01 != 0
 
         var found: [Touch] = []
         for offset in [35, 39] {

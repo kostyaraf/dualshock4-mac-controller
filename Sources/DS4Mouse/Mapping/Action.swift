@@ -3,6 +3,8 @@ import CoreGraphics
 struct KeyCombo: Equatable {
     var keyCode: CGKeyCode
     var flags: CGEventFlags
+    /// Set when the key itself is a modifier (e.g. right Option): flags it adds while held.
+    var heldFlags: CGEventFlags? = nil
 }
 
 /// What a button does. Written in the config as a string:
@@ -33,8 +35,13 @@ enum Action: Equatable {
     private static func parseKeys(_ text: String) throws -> KeyCombo {
         var parts = text.lowercased().split(separator: "+", omittingEmptySubsequences: false).map(String.init)
         // "cmd++" means cmd + the "+" key is not supported; "=" is the same physical key.
-        guard let keyName = parts.popLast(), let code = keyCodes[keyName] else {
-            throw ParseError(description: "неизвестная клавиша в «\(text)». Доступны: \(keyCodes.keys.sorted().joined(separator: " "))")
+        guard let keyName = parts.popLast() else { throw ParseError(description: "пустая клавиша") }
+        if let mod = modifierKeys[keyName], parts.isEmpty {
+            return KeyCombo(keyCode: mod.code, flags: [], heldFlags: mod.flags)
+        }
+        guard let code = keyCodes[keyName] else {
+            let all = (Array(keyCodes.keys) + Array(modifierKeys.keys)).sorted()
+            throw ParseError(description: "неизвестная клавиша в «\(text)». Доступны: \(all.joined(separator: " "))")
         }
         var flags: CGEventFlags = []
         for m in parts {
@@ -53,6 +60,22 @@ enum Action: Equatable {
         "ctrl": .maskControl, "control": .maskControl,
         "alt": .maskAlternate, "opt": .maskAlternate, "option": .maskAlternate,
         "shift": .maskShift, "fn": .maskSecondaryFn,
+    ]
+
+    /// Modifier keys pressed on their own (e.g. a dictation shortcut on right Option).
+    /// The raw bits tell left and right keys apart (NX_DEVICE*KEYMASK).
+    private static let modifierKeys: [String: (code: CGKeyCode, flags: CGEventFlags)] = [
+        "lcmd": (55, [.maskCommand, CGEventFlags(rawValue: 0x08)]),
+        "rcmd": (54, [.maskCommand, CGEventFlags(rawValue: 0x10)]),
+        "lshift": (56, [.maskShift, CGEventFlags(rawValue: 0x02)]),
+        "rshift": (60, [.maskShift, CGEventFlags(rawValue: 0x04)]),
+        "lctrl": (59, [.maskControl, CGEventFlags(rawValue: 0x01)]),
+        "rctrl": (62, [.maskControl, CGEventFlags(rawValue: 0x2000)]),
+        "lopt": (58, [.maskAlternate, CGEventFlags(rawValue: 0x20)]),
+        "ropt": (61, [.maskAlternate, CGEventFlags(rawValue: 0x40)]),
+        "lalt": (58, [.maskAlternate, CGEventFlags(rawValue: 0x20)]),
+        "ralt": (61, [.maskAlternate, CGEventFlags(rawValue: 0x40)]),
+        "fnkey": (63, [.maskSecondaryFn]),
     ]
 
     // macOS virtual key codes (ANSI layout).

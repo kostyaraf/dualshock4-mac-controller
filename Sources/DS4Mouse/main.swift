@@ -7,6 +7,7 @@ ds4mouse — управление Mac геймпадом вместо мыши
 Команды:
   ds4mouse [run] [--config путь]   запустить
   ds4mouse test  [--config путь]   только показывать нажатия, курсор не трогать
+  ds4mouse info                    возможности и качество связи подключённых геймпадов
   ds4mouse init-config [путь]      сохранить настройки по умолчанию в файл
   ds4mouse help
 
@@ -45,6 +46,11 @@ switch command {
 case "help", "-h", "--help":
     print(usage)
 
+case "info":
+    let info = ControllerInfo(seconds: 6)
+    info.run()
+    RunLoop.main.run()
+
 case "init-config":
     let url = args.first.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? Config.defaultPath
     if FileManager.default.fileExists(atPath: url.path) { fail("файл уже существует: \(url.path)") }
@@ -61,6 +67,11 @@ case "run", "test":
     let engine: Engine
     do { engine = try Engine(config: config, dryRun: dryRun) } catch { fail("\(error)") }
     engine.start()
+
+    // Without this macOS may "nap" a background process and delay its timers by up to ~1 s.
+    let activity = ProcessInfo.processInfo.beginActivity(
+        options: [.userInitiated, .latencyCritical], reason: "Gamepad input must be real-time")
+    _ = activity
 
     // Release held buttons on Ctrl+C so the mouse doesn't stay "pressed".
     signal(SIGINT, SIG_IGN)

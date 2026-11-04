@@ -27,8 +27,8 @@ final class Engine {
             log("Геймпад подключён: \(c.vendorName ?? "без названия")")
             self?.updateLight()
         }
-        input.onDisconnect = { [weak self] in
-            log("Геймпад отключён")
+        input.onDisconnect = { [weak self] c in
+            log("Геймпад отключён: \(c.vendorName ?? "без названия")")
             self?.releaseAll()
         }
     }
@@ -53,7 +53,10 @@ final class Engine {
 
         var s = ControllerState()
         input.read(into: &s)
-        if raw.isActive { s.touches = raw.touches }
+        if raw.isActive {
+            s.touches = raw.touches
+            if raw.psPressed { s.buttons.insert(.ps) }
+        }
 
         handleButtons(s, now: now)
         if enabled {
@@ -75,7 +78,7 @@ final class Engine {
                 guard enabled || a == .toggleEnabled else { continue }
                 held[b] = a
                 perform(a, button: b, down: true)
-                if case .key = a { repeatAt[b] = now + config.keyRepeatDelay }
+                if case .key(let k) = a, k.heldFlags == nil { repeatAt[b] = now + config.keyRepeatDelay }
             } else if !isDown && wasDown {
                 if let a = held.removeValue(forKey: b) { perform(a, button: b, down: false) }
                 repeatAt[b] = nil
