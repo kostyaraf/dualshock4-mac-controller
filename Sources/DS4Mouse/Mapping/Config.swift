@@ -3,11 +3,10 @@ import Foundation
 struct StickConfig: Codable {
     var speed: Double      // pixels per second at full tilt
     var deadzone: Double   // 0...1, ignore tilt below this
-    var curve: Double      // 1 = linear, >1 = finer control near center
 }
 
-/// How the cursor stick responds. See SPEC.md, Р-13.
-struct CursorFeelConfig: Codable {
+/// How a stick responds (cursor: Р-13, scroll: Р-21).
+struct StickFeelConfig: Codable {
     var fineShare: Double    // part of full speed given by the gentle curve: a wide, slow center
     var fineCurve: Double
     var edgeCurve: Double    // the steep part that only kicks in near the rim
@@ -49,7 +48,8 @@ struct Config: Codable {
     var cursor: StickConfig
     var scroll: StickConfig
     var invertScroll: Bool
-    var cursorFeel: CursorFeelConfig
+    var cursorFeel: StickFeelConfig
+    var scrollFeel: StickFeelConfig
     var delete: DeleteConfig
     var boostMultiplier: Double      // cursor speed with the scroll stick fully tilted while the cursor moves
     var touchpad: TouchpadConfig
@@ -63,12 +63,15 @@ struct Config: Codable {
     static let `default` = Config(
         cursorStick: "left",
         scrollStick: "right",
-        cursor: StickConfig(speed: 800, deadzone: 0.12, curve: 2.2),
-        scroll: StickConfig(speed: 1800, deadzone: 0.15, curve: 2.0),
+        cursor: StickConfig(speed: 800, deadzone: 0.12),
+        scroll: StickConfig(speed: 1800, deadzone: 0.15),
         invertScroll: false,
-        cursorFeel: CursorFeelConfig(fineShare: 0.3, fineCurve: 1.5, edgeCurve: 5,
-                                     edgeEnter: 0.9, edgeExit: 0.8,
-                                     edgeHold: 0.3, edgeRamp: 1.0, edgeMax: 4),
+        cursorFeel: StickFeelConfig(fineShare: 0.3, fineCurve: 1.5, edgeCurve: 5,
+                                    edgeEnter: 0.9, edgeExit: 0.8,
+                                    edgeHold: 0.3, edgeRamp: 1.0, edgeMax: 4),
+        scrollFeel: StickFeelConfig(fineShare: 0.25, fineCurve: 1.5, edgeCurve: 4,
+                                    edgeEnter: 0.9, edgeExit: 0.8,
+                                    edgeHold: 0.4, edgeRamp: 1.0, edgeMax: 3),
         delete: DeleteConfig(wordsAfter: 1.5, wordInterval: 0.15),
         boostMultiplier: 4.5,
         touchpad: TouchpadConfig(

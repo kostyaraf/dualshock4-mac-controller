@@ -161,12 +161,12 @@ final class Engine {
 
         // Boost grows smoothly with how far the second stick is tilted.
         let boost = secondStickRole == .boost ? 1 + (config.boostMultiplier - 1) * secondTilt : 1
-        let c = cursorResponse(cursorRaw, now: lastTick)
+        let c = response(cursorRaw, config.cursor, config.cursorFeel, rimSince: &cursorRimSince, now: lastTick)
         let k = config.cursor.speed * dt * boost
         if !dryRun { mouse.move(dx: c.x * k, dy: -c.y * k) }
 
-        guard secondStickRole == .scroll else { return }
-        let sc = shape(secondRaw, config.scroll)
+        guard secondStickRole == .scroll else { scrollRimSince = nil; return }
+        let sc = response(secondRaw, config.scroll, config.scrollFeel, rimSince: &scrollRimSince, now: lastTick)
         let ks = config.scroll.speed * dt * (config.invertScroll ? -1 : 1)
         if !dryRun { mouse.scroll(dx: -sc.x * ks, dy: sc.y * ks) }
     }
@@ -297,23 +297,24 @@ final class Engine {
         }
     }
 
-    /// When the cursor stick reached the rim, nil while it's not there.
-    private var atRimSince: TimeInterval?
+    /// When each stick reached the rim, nil while it's not there.
+    private var cursorRimSince: TimeInterval?
+    private var scrollRimSince: TimeInterval?
 
-    /// Cursor stick → velocity (fraction of full speed, can exceed 1 with the rim boost).
+    /// Stick → velocity (fraction of full speed, can exceed 1 with the rim boost).
     /// A wide slow center for precision, a steep rise near the rim, and if the stick is held
-    /// at the rim the speed keeps growing: the user clearly wants to travel far. See SPEC.md, Р-13.
-    private func cursorResponse(_ v: Vec2, now: TimeInterval) -> Vec2 {
-        let f = config.cursorFeel
-        let n = tilt(v, deadzone: config.cursor.deadzone)
-        guard n > 0 else { atRimSince = nil; return Vec2() }
+    /// at the rim the speed keeps growing: the user clearly wants to travel far. See SPEC.md, Р-13, Р-21.
+    private func response(_ v: Vec2, _ c: StickConfig, _ f: StickFeelConfig,
+                          rimSince: inout TimeInterval?, now: TimeInterval) -> Vec2 {
+        let n = tilt(v, deadzone: c.deadzone)
+        guard n > 0 else { rimSince = nil; return Vec2() }
 
         // Along the rim, moving from "up" to "right" doesn't reset the boost — only easing off does.
-        if n >= f.edgeEnter { atRimSince = atRimSince ?? now }
-        else if n < f.edgeExit { atRimSince = nil }
+        if n >= f.edgeEnter { rimSince = rimSince ?? now }
+        else if n < f.edgeExit { rimSince = nil }
 
         var speed = f.fineShare * pow(n, f.fineCurve) + (1 - f.fineShare) * pow(n, f.edgeCurve)
-        if let since = atRimSince {
+        if let since = rimSince {
             let x = min(max((now - since - f.edgeHold) / f.edgeRamp, 0), 1)
             speed *= 1 + (f.edgeMax - 1) * x * x * (3 - 2 * x)   // smooth start and finish
         }
@@ -325,15 +326,6 @@ final class Engine {
     private func tilt(_ v: Vec2, deadzone: Double) -> Double {
         let mag = v.length
         return mag > deadzone ? min((mag - deadzone) / (1 - deadzone), 1) : 0
-    }
-
-    /// Radial deadzone + response curve: small tilts give fine movement, full tilt gives full speed.
-    private func shape(_ v: Vec2, _ c: StickConfig) -> Vec2 {
-        let mag = v.length
-        guard mag > c.deadzone else { return Vec2() }
-        let norm = min((mag - c.deadzone) / (1 - c.deadzone), 1)
-        let scaled = pow(norm, c.curve)
-        return Vec2(x: v.x / mag * scaled, y: v.y / mag * scaled)
     }
 
     private func updateLight() {
