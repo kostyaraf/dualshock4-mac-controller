@@ -77,9 +77,7 @@ struct Config: Codable {
             click: "key:space",
             doubleClick: "newLine",
             twoFingerClick: "rightClick",
-            // Accessibility shortcut. Toggles the on-screen keyboard when it is the only
-            // feature ticked in System Settings → Accessibility → Shortcut.
-            longPress: "key:cmd+alt+f5",
+            longPress: "toggleKeyboard",
             longPressSeconds: 0.6,
             doubleClickSeconds: 0.35,
             oneFingerMode: "swipe",

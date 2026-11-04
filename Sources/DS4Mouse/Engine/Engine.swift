@@ -12,6 +12,7 @@ final class Engine {
     private let raw = DS4RawReader()
     private let mouse = VirtualMouse()
     private let keyboard = VirtualKeyboard()
+    private let osk = OnScreenKeyboard()
     private let dryRun: Bool
 
     private var enabled = true
@@ -32,6 +33,9 @@ final class Engine {
         self.padClicks = try config.resolvedPadClicks()
         self.dryRun = dryRun
         mouse.modifiers = { [keyboard] in keyboard.heldModifiers }
+        osk.type = { [keyboard, dryRun] text in
+            if dryRun { log("клавиатура: \(text)") } else { keyboard.type(text) }
+        }
 
         input.onConnect = { [weak self] c in
             log("Геймпад подключён: \(c.vendorName ?? "без названия")")
@@ -44,7 +48,9 @@ final class Engine {
     }
 
     func start() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 125, repeats: true) { [weak self] _ in self?.tick() }
+        let t = Timer(timeInterval: 1.0 / 125, repeats: true) { [weak self] _ in self?.tick() }
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
     func releaseAll() {
@@ -72,6 +78,7 @@ final class Engine {
 
         handleButtons(s, now: now)
         if enabled { handlePadClick(s, now: now) }
+        if enabled && osk.isVisible { handleKeyboardNav(s, now: now) }
         if enabled {
             handleSticks(s, dt: dt)
             handleTouchpad(s)
@@ -83,6 +90,11 @@ final class Engine {
         for b in Button.allCases {
             let isDown = s.buttons.contains(b), wasDown = prev.buttons.contains(b)
             if isDown && !wasDown {
+                if osk.isVisible, !s.buttons.contains(.ps), let k = oskAction(b) {
+                    k()
+                    navRepeatAt = now + config.keyRepeatDelay
+                    continue
+                }
                 let a = (b != .ps && s.buttons.contains(.ps) ? psActions[b] : nil) ?? actions[b] ?? .none
                 if a == .toggleEnabled {
                     // Pause only on a deliberate hold, so a stray stick click doesn't stop everything.
@@ -149,9 +161,14 @@ final class Engine {
                     keyboard.tapIgnoringHeld(KeyCombo(keyCode: 49, flags: []))
                 }
             }
+        case .toggleKeyboard:
+            guard down else { return }
+            osk.toggle()
+            updateLight()
         case .toggleEnabled:
             guard down else { return }
             releaseAll()
+            osk.hide()
             enabled.toggle()
             log(enabled ? "Управление включено" : "Управление на паузе")
             updateLight()
@@ -164,7 +181,8 @@ final class Engine {
     private var secondStickRole = SecondStickRole.idle
 
     private func handleSticks(_ s: ControllerState, dt: Double) {
-        let cursorRaw = stick(config.cursorStick, s)
+        // While our keyboard is open the cursor stick moves the highlighted key instead.
+        let cursorRaw = osk.isVisible ? Vec2() : stick(config.cursorStick, s)
         let secondRaw = stick(config.scrollStick, s)
         let secondTilt = tilt(secondRaw, deadzone: config.scroll.deadzone)
 
@@ -251,6 +269,51 @@ final class Engine {
         log("Жест на тачпаде: \(dir)")
         perform(a, button: .touchpad, down: true)
         perform(a, button: .touchpad, down: false)
+    }
+
+    // MARK: - On-screen keyboard
+
+    /// Buttons that do something else while the keyboard is open (without PS). See SPEC.md, Р-25.
+    private func oskAction(_ b: Button) -> (() -> Void)? {
+        switch b {
+        case .cross: osk.pressSelected
+        case .square: osk.toggleShift
+        case .triangle: osk.nextPage
+        case .circle: { [self] in osk.hide(); updateLight() }
+        case .dpadUp: { [osk] in osk.move(dx: 0, dy: -1) }
+        case .dpadDown: { [osk] in osk.move(dx: 0, dy: 1) }
+        case .dpadLeft: { [osk] in osk.move(dx: -1, dy: 0) }
+        case .dpadRight: { [osk] in osk.move(dx: 1, dy: 0) }
+        default: nil
+        }
+    }
+
+    private var navDir: (dx: Int, dy: Int)?
+    private var navRepeatAt: TimeInterval = 0
+
+    /// Left stick moves the highlight one key per push, repeating while held. D-pad repeats too.
+    private func handleKeyboardNav(_ s: ControllerState, now: TimeInterval) {
+        var dir: (dx: Int, dy: Int)?
+        let v = stick(config.cursorStick, s)
+        if v.length > 0.5 {
+            dir = abs(v.x) > abs(v.y) ? (v.x > 0 ? 1 : -1, 0) : (0, v.y > 0 ? -1 : 1)
+        } else if s.buttons.contains(.dpadUp) { dir = (0, -1) }
+        else if s.buttons.contains(.dpadDown) { dir = (0, 1) }
+        else if s.buttons.contains(.dpadLeft) { dir = (-1, 0) }
+        else if s.buttons.contains(.dpadRight) { dir = (1, 0) }
+
+        guard let d = dir else { navDir = nil; return }
+        let isDpad = v.length <= 0.5
+        if let old = navDir, old == d {
+            guard now >= navRepeatAt else { return }
+            osk.move(dx: d.dx, dy: d.dy)
+            navRepeatAt = now + 0.09
+        } else {
+            navDir = d
+            // The D-pad press itself already moved once (in handleButtons).
+            if !isDpad { osk.move(dx: d.dx, dy: d.dy) }
+            navRepeatAt = now + 0.35
+        }
     }
 
     // MARK: - Touchpad press: space / new line
@@ -352,7 +415,8 @@ final class Engine {
     }
 
     private func updateLight() {
-        if enabled { input.setLight(red: 0, green: 1, blue: 0.15) }
+        if enabled && osk.isVisible { input.setLight(red: 0, green: 0.3, blue: 1) }
+        else if enabled { input.setLight(red: 0, green: 1, blue: 0.15) }
         else { input.setLight(red: 1, green: 0.25, blue: 0) }
     }
 }

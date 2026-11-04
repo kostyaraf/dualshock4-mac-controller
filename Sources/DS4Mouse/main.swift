@@ -87,7 +87,9 @@ case "run", "test":
 
     log(dryRun ? "Режим проверки: нажимайте кнопки, курсор двигаться не будет. Ctrl+C — выход."
                : "Работаю. L3 (удерживать левый стик 1 с) — пауза. Ctrl+C — выход.")
-    RunLoop.main.run()
+    // A real app loop: the on-screen keyboard is a window.
+    NSApplication.shared.setActivationPolicy(.accessory)
+    NSApplication.shared.run()
 
 default:
     print(usage)

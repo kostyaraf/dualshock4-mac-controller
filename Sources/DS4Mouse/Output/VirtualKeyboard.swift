@@ -9,6 +9,17 @@ final class VirtualKeyboard {
     /// They are added to every key and mouse event, so PS + L1 becomes Cmd+Tab.
     private(set) var heldModifiers: CGEventFlags = []
 
+    /// Types text as characters, independent of the current keyboard layout (Russian works on an English layout).
+    func type(_ text: String) {
+        let chars = Array(text.utf16)
+        for down in [true, false] {
+            guard let e = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: down) else { return }
+            e.flags = []
+            e.keyboardSetUnicodeString(stringLength: chars.count, unicodeString: chars)
+            e.post(tap: .cghidEventTap)
+        }
+    }
+
     /// Press and release, without the modifiers held via the gamepad.
     func tapIgnoringHeld(_ combo: KeyCombo) {
         for down in [true, false] {
