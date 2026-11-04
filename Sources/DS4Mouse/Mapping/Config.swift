@@ -25,6 +25,7 @@ struct Config: Codable {
     var boostMultiplier: Double      // speed when R2 is fully pressed
     var touchpad: TouchpadConfig
     var keyRepeatDelay: Double
+    var toggleHoldSeconds: Double    // how long to hold the pause button
     var keyRepeatInterval: Double
     var buttons: [String: String]    // Button name -> action string
 
@@ -38,6 +39,7 @@ struct Config: Codable {
         boostMultiplier: 6,
         touchpad: TouchpadConfig(enabled: true, cursorSpeed: 0.7, scrollSpeed: 1.0, deadband: 3, smoothing: 0.35, twoFingerClickIsRightClick: true),
         keyRepeatDelay: 0.4,
+        toggleHoldSeconds: 1.0,
         keyRepeatInterval: 0.05,
         buttons: [
             "cross": "leftClick",

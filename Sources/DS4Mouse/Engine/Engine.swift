@@ -14,6 +14,7 @@ final class Engine {
     private var prev = ControllerState()
     private var held: [Button: Action] = [:]
     private var repeatAt: [Button: TimeInterval] = [:]
+    private var toggleAt: [Button: TimeInterval] = [:]
     private var lastTick = ProcessInfo.processInfo.systemUptime
     private var timer: Timer?
 
@@ -75,13 +76,22 @@ final class Engine {
                 if b == .touchpad, config.touchpad.twoFingerClickIsRightClick, s.touches.count >= 2, a == .leftClick {
                     a = .rightClick
                 }
-                guard enabled || a == .toggleEnabled else { continue }
+                if a == .toggleEnabled {
+                    // Pause only on a deliberate hold, so a stray stick click doesn't stop everything.
+                    toggleAt[b] = now + config.toggleHoldSeconds
+                    continue
+                }
+                guard enabled else { continue }
                 held[b] = a
                 perform(a, button: b, down: true)
                 if case .key(let k) = a, k.heldFlags == nil { repeatAt[b] = now + config.keyRepeatDelay }
             } else if !isDown && wasDown {
                 if let a = held.removeValue(forKey: b) { perform(a, button: b, down: false) }
                 repeatAt[b] = nil
+                toggleAt[b] = nil
+            } else if isDown, let t = toggleAt[b], now >= t {
+                toggleAt[b] = nil
+                perform(.toggleEnabled, button: b, down: true)
             } else if isDown, let t = repeatAt[b], now >= t, case .key(let k)? = held[b] {
                 if !dryRun { keyboard.key(k, down: true) }
                 repeatAt[b] = now + config.keyRepeatInterval
@@ -187,7 +197,7 @@ final class Engine {
     }
 
     private func updateLight() {
-        if enabled { input.setLight(red: 0, green: 0.3, blue: 1) }
+        if enabled { input.setLight(red: 0, green: 1, blue: 0.15) }
         else { input.setLight(red: 1, green: 0.25, blue: 0) }
     }
 }
