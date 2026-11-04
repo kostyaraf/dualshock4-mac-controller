@@ -135,6 +135,20 @@ final class Engine {
             let combo = KeyCombo(keyCode: returnKey, flags: mod)
             keyboard.key(combo, down: true)
             keyboard.key(combo, down: false)
+        case .screenshotScreen, .screenshotWindow:
+            guard down else { return }
+            // System shortcuts: Ctrl+Cmd+Shift+3 (screen) / +4 (area) copy to the clipboard instead of a file.
+            let combo = KeyCombo(keyCode: a == .screenshotScreen ? 20 : 21,
+                                 flags: [.maskControl, .maskCommand, .maskShift])
+            keyboard.key(combo, down: true)
+            keyboard.key(combo, down: false)
+            if a == .screenshotWindow {
+                // Space switches the area picker to "pick a window". Without Cmd: PS may still be held,
+                // and Cmd+Space would be Spotlight.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [keyboard] in
+                    keyboard.tapIgnoringHeld(KeyCombo(keyCode: 49, flags: []))
+                }
+            }
         case .toggleEnabled:
             guard down else { return }
             releaseAll()

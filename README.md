@@ -35,11 +35,12 @@ swift build -c release
 | Крестик | левый клик (удержание — перетаскивание) |
 | Круг | правый клик |
 | Квадрат | переключить приложение (⌘Tab) |
-| Треугольник | Mission Control |
+| Треугольник | Escape |
 | L1 / R1 | Tab / Return |
 | R3 | средний клик |
 | Крестовина | стрелки |
-| Share / Options | Escape / Return |
+| Share | скриншот экрана в буфер обмена (PS + Share — скриншот окна: кликнуть по окну) |
+| Options | Return |
 | PS | правый Cmd (например, для голосового набора). PS + L1 — Cmd+Tab (приложения), PS + L2 — Cmd+` (окна приложения) |
 | L3, держать 1 с | пауза (подсветка зелёная — работает, оранжевая — пауза) |
 
@@ -58,7 +59,7 @@ swift build -c release
 }
 ```
 
-Действия: `leftClick`, `rightClick`, `middleClick`, `toggleEnabled`, `newLine`, `none`, `key:<модификаторы+клавиша>` (модификаторы `cmd ctrl alt shift fn`).
+Действия: `leftClick`, `rightClick`, `middleClick`, `toggleEnabled`, `newLine`, `screenshotScreen`, `screenshotWindow`, `none`, `key:<модификаторы+клавиша>` (модификаторы `cmd ctrl alt shift fn`).
 Кнопки: `cross circle square triangle l1 r1 l2 r2 l3 r3 share options ps touchpad dpadUp dpadDown dpadLeft dpadRight`.
 
 Вместо жестов можно вернуть курсор одним пальцем и прокрутку двумя: `{"touchpad": {"oneFingerMode": "cursor", "twoFingerMode": "scroll"}}`.

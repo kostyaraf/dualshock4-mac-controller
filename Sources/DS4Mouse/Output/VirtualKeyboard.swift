@@ -9,6 +9,15 @@ final class VirtualKeyboard {
     /// They are added to every key and mouse event, so PS + L1 becomes Cmd+Tab.
     private(set) var heldModifiers: CGEventFlags = []
 
+    /// Press and release, without the modifiers held via the gamepad.
+    func tapIgnoringHeld(_ combo: KeyCombo) {
+        for down in [true, false] {
+            guard let e = CGEvent(keyboardEventSource: source, virtualKey: combo.keyCode, keyDown: down) else { return }
+            e.flags = combo.flags
+            e.post(tap: .cghidEventTap)
+        }
+    }
+
     func key(_ combo: KeyCombo, down: Bool) {
         guard let e = CGEvent(keyboardEventSource: source, virtualKey: combo.keyCode, keyDown: down) else { return }
         if let held = combo.heldFlags {

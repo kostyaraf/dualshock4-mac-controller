@@ -100,14 +100,14 @@ struct Config: Codable {
             "cross": "leftClick",
             "circle": "rightClick",
             "square": "key:cmd+tab",
-            "triangle": "key:ctrl+up",
+            "triangle": "key:escape",
             "l1": "key:tab",
             "r1": "key:return",
             "l2": "none",
             "r2": "key:backspace",
             "l3": "toggleEnabled",
             "r3": "middleClick",
-            "share": "key:escape",
+            "share": "screenshotScreen",
             "options": "key:return",
             "ps": "key:rcmd",
             "touchpad": "none",   // see touchpad.click
@@ -118,6 +118,7 @@ struct Config: Codable {
         ],
         psLayer: [
             "l2": "key:grave",   // PS + L2 = Cmd+` — next window of the same app
+            "share": "screenshotWindow",
         ],
         terminalApps: [
             "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty",
