@@ -227,6 +227,7 @@ final class Engine {
         }
 
         let mode = now.count == 1 ? config.touchpad.oneFingerMode : config.touchpad.twoFingerMode
+        if mode == "none" { return }
         if mode == "swipe" {
             detectSwipe(raw)
             return

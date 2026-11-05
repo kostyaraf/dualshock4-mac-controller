@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>DS4Mouse — карта управления</title>
+<!-- Source of docs/controller-map.pdf. Rebuild: ./scripts/build-map.sh. Keep in sync with SPEC.md. -->
+<style>
+  @page { size: 1123px 794px; margin: 0; }
+  :root {
+    --ink: #1d2433; --muted: #5b6475; --line: #8a94a8; --card: #f6f7fa; --border: #dde1ea;
+    --left: #2f6fde; --right: #d2452f; --center: #1f9a6b; --body: #e9ebf0; --body-edge: #b9bfcc;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: var(--ink);
+    font: 11px/1.35 -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; }
+  .page { position: relative; width: 1123px; height: 794px; overflow: hidden; }
+  svg.art { position: absolute; inset: 0; }
+  .box { position: absolute; width: 236px; padding: 7px 10px; background: var(--card);
+    border: 1px solid var(--border); border-left: 4px solid var(--c); border-radius: 8px; }
+  .box h3 { margin: 0 0 2px; font-size: 12.5px; color: var(--c); }
+  .box p { margin: 0; }
+  .box ul { margin: 2px 0 0; padding-left: 14px; }
+  .box li { margin: 0; }
+  .opt { color: var(--muted); }
+  .opt b { color: var(--ink); }
+  .col { position: absolute; top: 56px; width: 226px; display: flex; flex-direction: column; gap: 8px; }
+  .col .box { position: static; width: auto; }
+  .colL { left: 20px; } .colR { left: 877px; }
+  .L { --c: var(--left); } .R { --c: var(--right); }
+  .C { --c: var(--center); }
+  h1 { position: absolute; left: 24px; top: 14px; margin: 0; font-size: 20px; }
+  .date { position: absolute; right: 24px; top: 20px; color: var(--muted); }
+  .strip { position: absolute; left: 24px; right: 24px; top: 600px; display: grid;
+    grid-template-columns: 1.15fr 1fr 0.8fr; gap: 12px; }
+  .strip .box { position: static; width: auto; }
+  kbd { font: 600 10.5px -apple-system, sans-serif; padding: 0 4px; border: 1px solid var(--border);
+    border-radius: 4px; background: #fff; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: -1px; margin-right: 3px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <svg class="art" viewBox="0 0 1123 794" width="1123" height="794">
+    <defs>
+      <marker id="end" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6">
+        <circle cx="5" cy="5" r="4" fill="#1d2433"/>
+      </marker>
+    </defs>
+
+    <!-- Gamepad (schematic) -->
+    <g transform="translate(561 360) scale(0.9) translate(-561 -360)">
+    <g stroke="var(--body-edge)" stroke-width="2">
+      <rect x="352" y="176" width="92" height="22" rx="9" fill="#d9dce3"/>
+      <rect x="679" y="176" width="92" height="22" rx="9" fill="#d9dce3"/>
+      <rect x="345" y="203" width="104" height="14" rx="7" fill="#d9dce3"/>
+      <rect x="674" y="203" width="104" height="14" rx="7" fill="#d9dce3"/>
+      <path fill="var(--body)" d="M 350 222 Q 561 205 772 222 Q 832 230 846 290 L 880 455 Q 892 528 838 542
+        Q 798 552 768 508 L 708 420 Q 561 436 414 420 L 354 508 Q 324 552 284 542 Q 230 528 242 455
+        L 276 290 Q 290 230 350 222 Z"/>
+      <rect x="476" y="228" width="170" height="92" rx="10" fill="#f7f8fa"/>
+      <rect x="440" y="236" width="12" height="24" rx="6" fill="#c9cdd6"/>
+      <rect x="670" y="236" width="12" height="24" rx="6" fill="#c9cdd6"/>
+      <circle cx="561" cy="372" r="11" fill="#c9cdd6"/>
+      <circle cx="462" cy="380" r="31" fill="#cfd3dc"/>
+      <circle cx="462" cy="380" r="20" fill="#bfc4cf"/>
+      <circle cx="660" cy="380" r="31" fill="#cfd3dc"/>
+      <circle cx="660" cy="380" r="20" fill="#bfc4cf"/>
+      <!-- D-pad -->
+      <path fill="#cfd3dc" d="M 350 268 h 20 v 22 h 22 v 20 h -22 v 22 h -20 v -22 h -22 v -20 h 22 Z"/>
+      <!-- Face buttons -->
+      <circle cx="762" cy="270" r="13" fill="#f7f8fa"/>
+      <circle cx="792" cy="300" r="13" fill="#f7f8fa"/>
+      <circle cx="762" cy="330" r="13" fill="#f7f8fa"/>
+      <circle cx="732" cy="300" r="13" fill="#f7f8fa"/>
+    </g>
+    <g font-size="11" font-weight="700" text-anchor="middle" fill="#5b6475">
+      <text x="398" y="191">L2</text><text x="725" y="191">R2</text>
+      <text x="397" y="214" font-size="9">L1</text><text x="726" y="214" font-size="9">R1</text>
+      <text x="561" y="278" fill="#9aa2b2" font-weight="600">тачпад</text>
+      <text x="561" y="376" font-size="8">PS</text>
+      <text x="446" y="232" font-size="8">SHARE</text><text x="676" y="232" font-size="8">OPTIONS</text>
+      <text x="462" y="384" font-size="9">L3</text><text x="660" y="384" font-size="9">R3</text>
+    </g>
+    <g font-size="14" text-anchor="middle" font-weight="700">
+      <text x="762" y="275" fill="#1f9a6b">△</text>
+      <text x="792" y="305" fill="#d2452f">○</text>
+      <text x="762" y="335" fill="#2f6fde">✕</text>
+      <text x="732" y="305" fill="#c2468f">□</text>
+    </g>
+    </g>
+
+    <g id="leaders" fill="none" stroke="var(--line)" stroke-width="1.3"></g>
+  </svg>
+
+  <h1>DS4Mouse — карта управления</h1>
+  <div class="date">обновлено: 2026-11-05</div>
+
+  <!-- Left side -->
+  <div class="col colL">
+  <div class="box L" data-target="362,187">
+    <h3>L2 — Tab</h3>
+    <p class="opt"><b>Options + L2</b> — переключить приложение (Cmd+Tab): держи Options, жми L2, отпусти Options — выбрано</p>
+  </div>
+  <div class="box L" data-target="372,210">
+    <h3>L1 — не назначена</h3>
+    <p class="opt"><b>Options + L1</b> — следующее окно того же приложения (Cmd+`)</p>
+  </div>
+  <div class="box L" data-target="446,248">
+    <h3>Share — скриншот экрана</h3>
+    <p>Весь экран в буфер обмена, вставить — Cmd+V</p>
+    <p class="opt"><b>Options + Share</b> — скриншот окна: кликни крестиком по окну</p>
+  </div>
+  <div class="box L" data-target="330,300">
+    <h3>Крестовина — стрелки</h3>
+    <p>Держать — повтор</p>
+    <p class="opt"><b>Options +</b> ↓ копировать · → вставить · ↑ вырезать · ← выделить всё</p>
+  </div>
+  <div class="box L" data-target="440,395">
+    <h3>Левый стик — курсор</h3>
+    <ul>
+      <li>малый наклон — медленно и точно</li>
+      <li>долго ведёшь медленно — ещё медленнее (прицеливание), паузы до 3 с не сбрасывают</li>
+      <li>у края — быстро; упёр в край &gt; 0,3 с — разгон до ×4</li>
+      <li><b>L3 держать 1 с</b> — пауза / продолжить</li>
+    </ul>
+  </div>
+
+  </div>
+
+  <!-- Center -->
+  <div class="box C" data-target="561,240" style="left:380px; top:52px; width:363px">
+    <h3>Тачпад</h3>
+    <p><b>Смахнуть двумя пальцами</b> (одним — ничего): ↑ Mission Control · ↓ окна приложения · ← → соседний стол</p>
+    <p><b>Продавить</b> — пробел · <b>2× быстро</b> — новая строка без отправки · <b>держать 0,6 с</b> — экранная клавиатура · <b>двумя пальцами</b> — правый клик</p>
+  </div>
+  <div class="box C" data-target="561,383" data-up="1" style="left:461px; top:548px; width:200px; padding:4px 10px; text-align:center">
+    <p><b>PS</b> — пока не назначена</p>
+  </div>
+
+  <!-- Right side -->
+  <div class="col colR">
+  <div class="box R" data-target="761,187">
+    <h3>R2 — Backspace</h3>
+    <p>Держать — стирает подряд, через 1,5 с — словами</p>
+    <p class="opt"><b>Options + R2</b> — стереть до начала строки</p>
+  </div>
+  <div class="box R" data-target="752,210">
+    <h3>R1 — Enter</h3>
+  </div>
+  <div class="box R" data-target="676,248">
+    <h3>Options — Cmd</h3>
+    <p>Держи и жми другую кнопку: Options + кнопка = Cmd + её действие. Это правый Cmd, на нём диктовка.</p>
+  </div>
+  <div class="box R" data-target="805,300">
+    <h3>Правые кнопки</h3>
+    <p><b style="color:#1f9a6b">△</b> Escape &nbsp; <b style="color:#c2468f">□</b> Enter &nbsp; <b style="color:#d2452f">○</b> правый клик</p>
+    <p><b style="color:#2f6fde">✕</b> левый клик: держать — перетащить, 2× — выделить слово, 3× — строку</p>
+  </div>
+  <div class="box R" data-target="682,395">
+    <h3>Правый стик — прокрутка</h3>
+    <p>Медленно в центре, у края быстрее, упёр в край — разгон.</p>
+    <p>Если левый стик уже ведёт курсор — <b>ускоряет курсор</b>.</p>
+    <p><b>R3</b> — средний клик</p>
+  </div>
+
+  </div>
+
+  <!-- Bottom strip -->
+  <div class="strip">
+    <div class="box C">
+      <h3>Экранная клавиатура (тачпад держать 0,6 с)</h3>
+      <p>Левый стик / крестовина — выбрать клавишу · <kbd>✕</kbd> ввести · <kbd>□</kbd> заглавная · <kbd>△</kbd> RU → EN → 123 · <kbd>○</kbd> закрыть</p>
+      <p class="opt">Пробел, новая строка (тачпад), Backspace (R2), Enter (R1) и прокрутка работают как обычно. Курсор мыши стоит.</p>
+    </div>
+    <div class="box" style="--c:#7a5bd6">
+      <h3>Сочетания с Options (= Cmd)</h3>
+      <p>+ L2 — приложения · + L1 — окна приложения</p>
+      <p>+ ↓ копировать · + → вставить · + ↑ вырезать · + ← выделить всё</p>
+      <p>+ Share — скриншот окна · + R2 — стереть строку</p>
+    </div>
+    <div class="box" style="--c:#8a94a8">
+      <h3>Подсветка</h3>
+      <p><span class="dot" style="background:#21c45d"></span>работает</p>
+      <p><span class="dot" style="background:#2f6fde"></span>открыта клавиатура</p>
+      <p><span class="dot" style="background:#f07a1a"></span>пауза (L3 держать 1 с)</p>
+    </div>
+  </div>
+</div>
+<script>
+// Leader lines from each box to its button. Targets are in unscaled gamepad coordinates.
+const k = 0.9, cx = 561, cy = 360, svgNS = "http://www.w3.org/2000/svg";
+const g = document.getElementById("leaders");
+for (const box of document.querySelectorAll("[data-target]")) {
+  let [x, y] = box.dataset.target.split(",").map(Number);
+  x = cx + (x - cx) * k; y = cy + (y - cy) * k;
+  const r = box.getBoundingClientRect();
+  let pts;
+  if (box.classList.contains("L")) { const ay = r.top + Math.min(24, r.height / 2); pts = [[r.right, ay], [r.right + 18, ay], [x, y]]; }
+  else if (box.classList.contains("R")) { const ay = r.top + Math.min(24, r.height / 2); pts = [[r.left, ay], [r.left - 18, ay], [x, y]]; }
+  else if (box.dataset.up) { pts = [[x, r.top], [x, y]]; }
+  else { pts = [[x, r.bottom], [x, y]]; }
+  const line = document.createElementNS(svgNS, "polyline");
+  line.setAttribute("points", pts.map(p => p.join(",")).join(" "));
+  g.appendChild(line);
+  const dot = document.createElementNS(svgNS, "circle");
+  dot.setAttribute("cx", x); dot.setAttribute("cy", y); dot.setAttribute("r", 3.5); dot.setAttribute("fill", "#1d2433");
+  g.appendChild(dot);
+}
+</script>
+</body>
+</html>

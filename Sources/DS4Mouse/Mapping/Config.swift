@@ -50,8 +50,8 @@ struct TouchpadConfig: Codable {
     var longPress: String            // holding the pad down: undoes the press's text, then this
     var longPressSeconds: Double
     var doubleClickSeconds: Double   // max time between presses to count as double
-    var oneFingerMode: String        // "swipe" (gestures below) | "cursor"
-    var twoFingerMode: String        // "swipe" (gestures below) | "scroll"
+    var oneFingerMode: String        // "swipe" (gestures below) | "cursor" | "none"
+    var twoFingerMode: String        // "swipe" (gestures below) | "scroll" | "none"
     var swipeDistance: Double        // touchpad units (pad is 1920 wide) a swipe must travel
     var swipes: [String: String]     // "up" | "down" | "left" | "right" -> action string
 }
@@ -94,7 +94,7 @@ struct Config: Codable {
             longPress: "toggleKeyboard",
             longPressSeconds: 0.6,
             doubleClickSeconds: 0.35,
-            oneFingerMode: "swipe",
+            oneFingerMode: "none",   // swipes with two thumbs only (Р-32)
             twoFingerMode: "swipe",
             swipeDistance: 300,
             // Same as four-finger swipes on a Mac trackpad ("left" = fingers move right-to-left).
