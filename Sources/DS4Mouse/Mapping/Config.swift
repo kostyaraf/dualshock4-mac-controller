@@ -82,7 +82,7 @@ struct Config: Codable {
         invertScroll: false,
         stickFeel: StickFeelConfig(fineZone: 0.72, fineCurve: 1.5, outerCurve: 3,
                                    rimEnter: 0.9, rimExit: 0.8, rimHold: 0.3, rimRamp: 1.0, rimMax: 4),
-        aim: AimConfig(zone: 0.45, resetTilt: 0.6, hold: 0.6, ramp: 0.8, minFactor: 0.65, maxPause: 3),
+        aim: AimConfig(zone: 0.54, resetTilt: 0.7, hold: 0.6, ramp: 0.8, minFactor: 0.65, maxPause: 3),
         delete: DeleteConfig(wordsAfter: 1.5, wordInterval: 0.15),
         boostMultiplier: 4.5,
         touchpad: TouchpadConfig(
