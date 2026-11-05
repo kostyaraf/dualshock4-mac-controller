@@ -194,7 +194,7 @@ final class Engine {
         // Boost grows smoothly with how far the second stick is tilted.
         let boost = secondStickRole == .boost ? 1 + (config.boostMultiplier - 1) * secondTilt : 1
         let c = response(cursorRaw, config.cursor, rimSince: &cursorRimSince, now: lastTick)
-        let aim = aimFactor(tilt(cursorRaw, deadzone: config.cursor.deadzone), dt: dt)
+        let aim = aimFactor(tilt(cursorRaw, deadzone: config.cursor.deadzone), atRim: cursorRimSince != nil, dt: dt)
         let k = config.cursor.speed * dt * boost * aim
         if !dryRun { mouse.move(dx: c.x * k, dy: -c.y * k) }
 
@@ -381,9 +381,13 @@ final class Engine {
 
     /// 1 normally; eases down to `aim.minFactor` once the user has been nudging the cursor gently for a while.
     /// The mirror image of the rim boost, except that short pauses keep it: aiming is stop-and-go. Р-26.
-    private func aimFactor(_ n: Double, dt: Double) -> Double {
+    /// The rim boost always wins: at the rim aiming ends at once, whatever the settings (Р-29).
+    private func aimFactor(_ n: Double, atRim: Bool, dt: Double) -> Double {
         let a = config.aim
-        if n == 0 {
+        if atRim {
+            aimTime = 0
+            aimPause = 0
+        } else if n == 0 {
             aimPause += dt
             if aimPause > a.maxPause { aimTime = 0 }
         } else if n > a.resetTilt {
