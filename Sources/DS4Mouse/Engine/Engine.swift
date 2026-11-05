@@ -6,7 +6,7 @@ final class Engine {
     private let config: Config
     private let actions: [Button: Action]
     private let swipeActions: [String: Action]
-    private let psActions: [Button: Action]
+    private let layer: (button: Button, actions: [Button: Action])
     private let padClicks: (click: Action, double: Action, twoFinger: Action, long: Action)
     private let input = GameControllerInput()
     private let raw = DS4RawReader()
@@ -29,7 +29,7 @@ final class Engine {
         self.config = config
         self.actions = try config.resolvedButtons()
         self.swipeActions = try config.resolvedSwipes()
-        self.psActions = try config.resolvedPSLayer()
+        self.layer = try config.resolvedLayer()
         self.padClicks = try config.resolvedPadClicks()
         self.dryRun = dryRun
         mouse.modifiers = { [keyboard] in keyboard.heldModifiers }
@@ -90,12 +90,12 @@ final class Engine {
         for b in Button.allCases {
             let isDown = s.buttons.contains(b), wasDown = prev.buttons.contains(b)
             if isDown && !wasDown {
-                if osk.isVisible, !s.buttons.contains(.ps), let k = oskAction(b) {
+                if osk.isVisible, !s.buttons.contains(layer.button), let k = oskAction(b) {
                     k()
                     navRepeatAt = now + config.keyRepeatDelay
                     continue
                 }
-                let a = (b != .ps && s.buttons.contains(.ps) ? psActions[b] : nil) ?? actions[b] ?? .none
+                let a = (b != layer.button && s.buttons.contains(layer.button) ? layer.actions[b] : nil) ?? actions[b] ?? .none
                 if a == .toggleEnabled {
                     // Pause only on a deliberate hold, so a stray stick click doesn't stop everything.
                     toggleAt[b] = now + config.toggleHoldSeconds
@@ -274,7 +274,7 @@ final class Engine {
 
     // MARK: - On-screen keyboard
 
-    /// Buttons that do something else while the keyboard is open (without PS). See SPEC.md, Р-25.
+    /// Buttons that do something else while the keyboard is open (without the Cmd button). See SPEC.md, Р-25.
     private func oskAction(_ b: Button) -> (() -> Void)? {
         switch b {
         case .cross: osk.pressSelected

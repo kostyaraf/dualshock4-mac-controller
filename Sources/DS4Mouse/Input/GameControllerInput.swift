@@ -21,6 +21,7 @@ final class GameControllerInput {
             // Ask the system to hand these buttons to us instead.
             c.extendedGamepad?.buttonHome?.preferredSystemGestureState = .disabled
             c.extendedGamepad?.buttonOptions?.preferredSystemGestureState = .disabled
+            c.extendedGamepad?.buttonMenu.preferredSystemGestureState = .disabled
             self.onConnect?(c)
         }
         NotificationCenter.default.addObserver(forName: .GCControllerDidDisconnect, object: nil, queue: .main) { [weak self] note in

@@ -71,7 +71,8 @@ struct Config: Codable {
     var toggleHoldSeconds: Double    // how long to hold the pause button
     var keyRepeatInterval: Double
     var buttons: [String: String]    // Button name -> action string
-    var psLayer: [String: String]    // while PS is held these replace `buttons` (PS = Cmd is still added)
+    var layerButton: String          // the button that acts as Cmd (Р-30)
+    var layer: [String: String]      // while layerButton is held these replace `buttons` (its Cmd is still added)
     var terminalApps: [String]       // bundle IDs where newLine is Option+Return
 
     static let `default` = Config(
@@ -110,7 +111,7 @@ struct Config: Codable {
         buttons: [
             "cross": "leftClick",
             "circle": "rightClick",
-            "square": "key:cmd+tab",
+            "square": "key:return",
             "triangle": "key:escape",
             "l1": "none",
             "r1": "key:return",
@@ -119,18 +120,19 @@ struct Config: Codable {
             "l3": "toggleEnabled",
             "r3": "middleClick",
             "share": "screenshotScreen",
-            "options": "key:return",
-            "ps": "key:rcmd",
+            "options": "key:rcmd",   // held Cmd; right Cmd also starts dictation
+            "ps": "none",
             "touchpad": "none",   // see touchpad.click
             "dpadUp": "key:up",
             "dpadDown": "key:down",
             "dpadLeft": "key:left",
             "dpadRight": "key:right",
         ],
-        psLayer: [
-            "l1": "key:grave",   // PS + L1 = Cmd+` — next window of the same app
+        layerButton: "options",
+        layer: [
+            "l1": "key:grave",   // Options + L1 = Cmd+` — next window of the same app
             "share": "screenshotWindow",
-            // PS is Cmd, so these become Cmd+C / Cmd+V / Cmd+X / Cmd+A.
+            // Options is Cmd, so these become Cmd+C / Cmd+V / Cmd+X / Cmd+A.
             "square": "key:c",
             "circle": "key:v",
             "triangle": "key:x",
@@ -157,7 +159,7 @@ struct Config: Codable {
         let config = try JSONDecoder().decode(Config.self, from: JSONSerialization.data(withJSONObject: merged))
         _ = try config.resolvedButtons()   // fail early on typos
         _ = try config.resolvedSwipes()
-        _ = try config.resolvedPSLayer()
+        _ = try config.resolvedLayer()
         _ = try config.resolvedPadClicks()
         return config
     }
@@ -184,8 +186,11 @@ struct Config: Codable {
         return result
     }
 
-    func resolvedPSLayer() throws -> [Button: Action] {
-        try Config.resolve(psLayer)
+    func resolvedLayer() throws -> (button: Button, actions: [Button: Action]) {
+        guard let b = Button(rawValue: layerButton) else {
+            throw Action.ParseError(description: "неизвестная кнопка layerButton «\(layerButton)»")
+        }
+        return (b, try Config.resolve(layer))
     }
 
     func resolvedPadClicks() throws -> (click: Action, double: Action, twoFinger: Action, long: Action) {
