@@ -20,6 +20,17 @@ struct StickFeelConfig: Codable {
     var rimMax: Double       // speed multiplier at the end of the ramp
 }
 
+/// Cursor only: the user keeps nudging the stick gently — aiming at something — so slow down a bit more.
+/// Short pauses between nudges don't reset it, a long pause or a fast move does. See SPEC.md, Р-26.
+struct AimConfig: Codable {
+    var zone: Double         // 0...1 tilt that counts as aiming (inside the slow center)
+    var resetTilt: Double    // tilting further than this ends aiming at once
+    var hold: Double         // seconds of aiming (pauses not counted) before slowing down
+    var ramp: Double         // seconds to reach the full slowdown
+    var minFactor: Double    // speed multiplier at full slowdown
+    var maxPause: Double     // a pause longer than this ends aiming
+}
+
 /// Holding a key that deletes text: after a while delete whole words, like on iPhone. See Р-14.
 struct DeleteConfig: Codable {
     var wordsAfter: Double       // seconds of holding Backspace before switching to words
@@ -52,6 +63,7 @@ struct Config: Codable {
     var scroll: StickConfig
     var invertScroll: Bool
     var stickFeel: StickFeelConfig
+    var aim: AimConfig
     var delete: DeleteConfig
     var boostMultiplier: Double      // cursor speed with the scroll stick fully tilted while the cursor moves
     var touchpad: TouchpadConfig
@@ -70,6 +82,7 @@ struct Config: Codable {
         invertScroll: false,
         stickFeel: StickFeelConfig(fineZone: 0.72, fineCurve: 1.5, outerCurve: 3,
                                    rimEnter: 0.9, rimExit: 0.8, rimHold: 0.3, rimRamp: 1.0, rimMax: 4),
+        aim: AimConfig(zone: 0.45, resetTilt: 0.6, hold: 0.6, ramp: 0.8, minFactor: 0.65, maxPause: 3),
         delete: DeleteConfig(wordsAfter: 1.5, wordInterval: 0.15),
         boostMultiplier: 4.5,
         touchpad: TouchpadConfig(
