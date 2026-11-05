@@ -112,9 +112,9 @@ struct Config: Codable {
             "circle": "rightClick",
             "square": "key:cmd+tab",
             "triangle": "key:escape",
-            "l1": "key:tab",
+            "l1": "none",
             "r1": "key:return",
-            "l2": "none",
+            "l2": "key:tab",
             "r2": "key:backspace",
             "l3": "toggleEnabled",
             "r3": "middleClick",
@@ -128,7 +128,7 @@ struct Config: Codable {
             "dpadRight": "key:right",
         ],
         psLayer: [
-            "l2": "key:grave",   // PS + L2 = Cmd+` — next window of the same app
+            "l1": "key:grave",   // PS + L1 = Cmd+` — next window of the same app
             "share": "screenshotWindow",
             // PS is Cmd, so these become Cmd+C / Cmd+V / Cmd+X / Cmd+A.
             "square": "key:c",
