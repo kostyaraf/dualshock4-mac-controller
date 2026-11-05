@@ -133,10 +133,10 @@ struct Config: Codable {
             "l1": "key:grave",   // Options + L1 = Cmd+` — next window of the same app
             "share": "screenshotWindow",
             // Options is Cmd, so these become Cmd+C / Cmd+V / Cmd+X / Cmd+A.
-            "square": "key:c",
-            "circle": "key:v",
-            "triangle": "key:x",
-            "r3": "key:a",
+            "dpadDown": "key:c",
+            "dpadRight": "key:v",
+            "dpadUp": "key:x",
+            "dpadLeft": "key:a",
         ],
         terminalApps: [
             "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty",

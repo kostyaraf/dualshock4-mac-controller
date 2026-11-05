@@ -95,7 +95,8 @@ final class Engine {
                     navRepeatAt = now + config.keyRepeatDelay
                     continue
                 }
-                let a = (b != layer.button && s.buttons.contains(layer.button) ? layer.actions[b] : nil) ?? actions[b] ?? .none
+                let layered = b != layer.button && s.buttons.contains(layer.button) ? layer.actions[b] : nil
+                let a = layered ?? actions[b] ?? .none
                 if a == .toggleEnabled {
                     // Pause only on a deliberate hold, so a stray stick click doesn't stop everything.
                     toggleAt[b] = now + config.toggleHoldSeconds
@@ -105,7 +106,8 @@ final class Engine {
                 held[b] = a
                 pressedAt[b] = now
                 perform(a, button: b, down: true)
-                if case .key(let k) = a, k.heldFlags == nil { repeatAt[b] = now + config.keyRepeatDelay }
+                // No autorepeat for layer shortcuts: holding Options + → must paste once, not twenty times.
+                if case .key(let k) = a, k.heldFlags == nil, layered == nil { repeatAt[b] = now + config.keyRepeatDelay }
             } else if !isDown && wasDown {
                 if let a = held.removeValue(forKey: b) { perform(a, button: b, down: false) }
                 repeatAt[b] = nil
